@@ -37,7 +37,7 @@ info:
     description: "CineVibe - Watching movies is a vibe"
     version: "1.0.0"
 
-bottom-cv:
+cinevibe:
   message: "CineVibe - Watching movies is a vibe"
   contactInfo:
     name: "Nguyen Quoc Viet"
