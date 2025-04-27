@@ -24,6 +24,7 @@ spring:
 # Firebase Configuration
 firebase:
   service-account-file: firebase-service-account.json
+  enabled: true 
 
 springdoc:
   api-docs:
