@@ -25,6 +25,13 @@ public class SecurityConfig {
                                 "/api/info/**",
                                 "/api/test/**",
                                 "/api/user/test/**",
+                                // Public social endpoints
+                                "/api/watchlists/public/**",
+                                "/api/reviews/movie/**",
+                                "/api/reviews/{reviewId:[\\d+]}",
+                                "/api/comments/review/**",
+                                "/api/comments/{commentId:[\\d+]}",
+                                // Swagger UI and API docs
                                 "/actuator/**",
                                 "/webjars/**",
                                 "/swagger-resources/**",
@@ -41,5 +48,4 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 }
