@@ -21,6 +21,10 @@ spring:
       expirationMs: 900000 # 1 hour
       refreshExpirationMs: 604800000 # 7 days
 
+# Firebase Configuration
+firebase:
+  service-account-file: firebase-service-account.json
+
 springdoc:
   api-docs:
     enabled: true
