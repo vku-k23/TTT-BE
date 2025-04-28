@@ -1,0 +1,16 @@
+# Development profile configuration
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/cinevibe?createDatabaseIfNotExist=true
+    username: root
+    password: root
+
+# Disable Firebase authentication for development
+firebase:
+  enabled: false
+  
+# Enable debug logging for security
+logging:
+  level:
+    org.springframework.security: DEBUG
+    com.ttt.cinevibe.configuration: DEBUG

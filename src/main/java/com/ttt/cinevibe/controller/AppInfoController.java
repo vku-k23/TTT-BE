@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "App info API", description = "The API of app info")
 @RestController
-@RequestMapping(value = "/api/info", produces = {MediaType.APPLICATION_JSON_VALUE})
+@RequestMapping(value = "/api/info", produces = { MediaType.APPLICATION_JSON_VALUE })
 @RequiredArgsConstructor
 public class AppInfoController {
     private final Environment environment;

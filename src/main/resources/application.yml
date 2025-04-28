@@ -14,12 +14,27 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
+  
+  # Added Flyway configuration to handle existing tables
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+    enabled: true
+    repair: true  # Add repair flag to fix the schema history
+    clean-disabled: false  # Spring Boot 2.x property 
+    clean-schema-history: true  # Make sure schema history is cleaned
+    cleanDisabled: false  # Spring Boot 3.x property
 
   security:
     jwt:
       secret-key: 6819f2332c05808fe53aecb57ed47111c90201b33f4ada050666331b62977451dc6eda5ff4f371106b882c08421c672ea5d2689451abeccc333a4f92365e6389
       expirationMs: 900000 # 1 hour
       refreshExpirationMs: 604800000 # 7 days
+
+# Firebase Configuration
+firebase:
+  service-account-file: firebase-service-account.json
+  enabled: true 
 
 springdoc:
   api-docs:
@@ -47,4 +62,4 @@ cinevibe:
     - (+84)123456789
 
 server:
-  port: 8080
+  port: 8081
