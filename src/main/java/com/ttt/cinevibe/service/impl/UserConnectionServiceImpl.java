@@ -2,6 +2,7 @@ package com.ttt.cinevibe.service.impl;
 
 import com.ttt.cinevibe.dto.request.UserConnectionRequest;
 import com.ttt.cinevibe.dto.response.UserConnectionResponse;
+import com.ttt.cinevibe.dto.response.UserResponse;
 import com.ttt.cinevibe.exception.DuplicateResourceException;
 import com.ttt.cinevibe.exception.ResourceNotFoundException;
 import com.ttt.cinevibe.exception.UnauthorizedException;
@@ -209,11 +210,11 @@ public class UserConnectionServiceImpl implements UserConnectionService {
     }
     
     private User getUserOrThrow(String userUid) {
-        User user = userService.findByFirebaseUid(userUid);
+        UserResponse user = userService.findByFirebaseUid(userUid);
         if (user == null) {
             throw new ResourceNotFoundException("User not found with UID: " + userUid);
         }
-        return user;
+        return mapToUser(user);
     }
     
     private UserConnectionResponse mapToUserConnectionResponse(UserConnection connection) {
@@ -227,6 +228,17 @@ public class UserConnectionServiceImpl implements UserConnectionService {
                 .followingProfileImageUrl(connection.getFollowing().getProfileImageUrl())
                 .status(connection.getStatus())
                 .createdAt(connection.getCreatedAt())
+                .build();
+    }
+
+    private User mapToUser(UserResponse userResponse) {
+        return User.builder()
+                .firebaseUid(userResponse.getFirebaseUid())
+                .email(userResponse.getEmail())
+                .displayName(userResponse.getDisplayName())
+                .profileImageUrl(userResponse.getProfileImageUrl())
+                .createdAt(userResponse.getCreatedAt())
+                .lastLogin(userResponse.getLastLogin())
                 .build();
     }
 }

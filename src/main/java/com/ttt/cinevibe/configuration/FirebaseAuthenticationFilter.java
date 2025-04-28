@@ -1,8 +1,10 @@
 package com.ttt.cinevibe.configuration;
 
+import com.google.cloud.storage.Acl.User;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
+import com.ttt.cinevibe.dto.request.UserRequest;
 import com.ttt.cinevibe.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -58,9 +60,16 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
                 String email = decodedToken.getEmail();
                 String name = decodedToken.getName();
                 String picture = decodedToken.getPicture();
+
+                UserRequest userRequest = UserRequest.builder()
+                        .firebaseUid(uid)
+                        .email(email)
+                        .displayName(name != null ? name : email)
+                        .profileImageUrl(picture)
+                        .build();
                 
                 // Sync user data with database
-                userService.createOrUpdateUser(uid, email, name, picture);
+                userService.createOrUpdateUser(userRequest);
                 
                 // Create authentication object
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

@@ -1,5 +1,7 @@
 package com.ttt.cinevibe.service.impl;
 
+import com.ttt.cinevibe.dto.request.UserRequest;
+import com.ttt.cinevibe.dto.response.UserResponse;
 import com.ttt.cinevibe.model.User;
 import com.ttt.cinevibe.repository.UserRepository;
 import com.ttt.cinevibe.service.UserService;
@@ -18,24 +20,28 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public User findByFirebaseUid(String firebaseUid) {
+    public UserResponse findByFirebaseUid(String firebaseUid) {
         log.debug("Finding user with Firebase UID: {}", firebaseUid);
-        return userRepository.findById(firebaseUid).orElse(null);
+        User user = userRepository.findById(firebaseUid).orElse(null);
+
+        return mapToUserResponse(user);
     }
 
     @Override
     @Transactional
-    public User createOrUpdateUser(String firebaseUid, String email, String displayName, String profileImageUrl) {
-        log.debug("Creating or updating user with Firebase UID: {}", firebaseUid);
-        User user = userRepository.findById(firebaseUid).orElse(new User());
+    public UserResponse createOrUpdateUser(UserRequest userRequest) {
+        log.debug("Creating or updating user with Firebase UID: {}", userRequest.getFirebaseUid());
+        User user = userRepository.findById(userRequest.getFirebaseUid()).orElse(new User());
 
-        user.setFirebaseUid(firebaseUid);
-        user.setEmail(email);
-        user.setDisplayName(displayName != null ? displayName : email);
-        user.setProfileImageUrl(profileImageUrl);
+        user.setFirebaseUid(userRequest.getFirebaseUid());
+        user.setEmail(userRequest.getEmail());
+        user.setDisplayName(userRequest.getDisplayName() != null ? userRequest.getDisplayName() : userRequest.getEmail());
+        user.setProfileImageUrl(userRequest.getProfileImageUrl());
         user.setLastLogin(LocalDateTime.now());
 
-        return userRepository.save(user);
+        User userSaved = userRepository.save(user);
+
+        return mapToUserResponse(userSaved);
     }
 
     @Override
@@ -46,5 +52,16 @@ public class UserServiceImpl implements UserService {
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
         });
+    }
+
+    private UserResponse mapToUserResponse(User user) {
+        return UserResponse.builder()
+                .firebaseUid(user.getFirebaseUid())
+                .email(user.getEmail())
+                .displayName(user.getDisplayName())
+                .profileImageUrl(user.getProfileImageUrl())
+                .createdAt(user.getCreatedAt())
+                .lastLogin(user.getLastLogin())
+                .build();
     }
 }

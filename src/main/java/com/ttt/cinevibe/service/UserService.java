@@ -1,9 +1,10 @@
 package com.ttt.cinevibe.service;
 
-import com.ttt.cinevibe.model.User;
+import com.ttt.cinevibe.dto.request.UserRequest;
+import com.ttt.cinevibe.dto.response.UserResponse;
 
 public interface UserService {
-    User findByFirebaseUid(String firebaseUid);
-    User createOrUpdateUser(String firebaseUid, String email, String displayName, String profileImageUrl);
+    UserResponse findByFirebaseUid(String firebaseUid);
+    UserResponse createOrUpdateUser(UserRequest userRequest);
     void updateLastLogin(String firebaseUid);
 }

@@ -1,6 +1,7 @@
 package com.ttt.cinevibe.service.impl;
 
 import com.ttt.cinevibe.dto.request.WatchlistRequest;
+import com.ttt.cinevibe.dto.response.UserResponse;
 import com.ttt.cinevibe.dto.response.WatchlistResponse;
 import com.ttt.cinevibe.exception.ResourceNotFoundException;
 import com.ttt.cinevibe.exception.UnauthorizedException;
@@ -110,11 +111,11 @@ public class WatchlistServiceImpl implements WatchlistService {
     }
     
     private User getUserOrThrow(String userUid) {
-        User user = userService.findByFirebaseUid(userUid);
+        UserResponse user = userService.findByFirebaseUid(userUid);
         if (user == null) {
             throw new ResourceNotFoundException("User not found with UID: " + userUid);
         }
-        return user;
+        return mapToUser(user);
     }
     
     private WatchlistResponse mapToWatchlistResponse(Watchlist watchlist) {
@@ -131,6 +132,17 @@ public class WatchlistServiceImpl implements WatchlistService {
                 .itemCount((int) itemCount)
                 .createdAt(watchlist.getCreatedAt())
                 .updatedAt(watchlist.getUpdatedAt())
+                .build();
+    }
+
+    private User mapToUser(UserResponse userResponse) {
+        return User.builder()
+                .firebaseUid(userResponse.getFirebaseUid())
+                .email(userResponse.getEmail())
+                .displayName(userResponse.getDisplayName())
+                .profileImageUrl(userResponse.getProfileImageUrl())
+                .createdAt(userResponse.getCreatedAt())
+                .lastLogin(userResponse.getLastLogin())
                 .build();
     }
 }

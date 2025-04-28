@@ -2,6 +2,7 @@ package com.ttt.cinevibe.service.impl;
 
 import com.ttt.cinevibe.dto.request.MovieReviewRequest;
 import com.ttt.cinevibe.dto.response.MovieReviewResponse;
+import com.ttt.cinevibe.dto.response.UserResponse;
 import com.ttt.cinevibe.exception.DuplicateResourceException;
 import com.ttt.cinevibe.exception.ResourceNotFoundException;
 import com.ttt.cinevibe.exception.UnauthorizedException;
@@ -165,11 +166,11 @@ public class MovieReviewServiceImpl implements MovieReviewService {
     }
     
     private User getUserOrThrow(String userUid) {
-        User user = userService.findByFirebaseUid(userUid);
+        UserResponse user = userService.findByFirebaseUid(userUid);
         if (user == null) {
             throw new ResourceNotFoundException("User not found with UID: " + userUid);
         }
-        return user;
+        return mapToUser(user);
     }
     
     private MovieReview getReviewOrThrow(Long reviewId) {
@@ -193,6 +194,17 @@ public class MovieReviewServiceImpl implements MovieReviewService {
                 .commentCount(commentCount)
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())
+                .build();
+    }
+
+    private User mapToUser(UserResponse userResponse) {
+        return User.builder()
+                .firebaseUid(userResponse.getFirebaseUid())
+                .email(userResponse.getEmail())
+                .displayName(userResponse.getDisplayName())
+                .profileImageUrl(userResponse.getProfileImageUrl())
+                .createdAt(userResponse.getCreatedAt())
+                .lastLogin(userResponse.getLastLogin())
                 .build();
     }
 }

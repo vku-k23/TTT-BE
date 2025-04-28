@@ -2,6 +2,7 @@ package com.ttt.cinevibe.service.impl;
 
 import com.ttt.cinevibe.dto.request.CommentRequest;
 import com.ttt.cinevibe.dto.response.CommentResponse;
+import com.ttt.cinevibe.dto.response.UserResponse;
 import com.ttt.cinevibe.exception.ResourceNotFoundException;
 import com.ttt.cinevibe.exception.UnauthorizedException;
 import com.ttt.cinevibe.model.Comment;
@@ -129,11 +130,11 @@ public class CommentServiceImpl implements CommentService {
     }
     
     private User getUserOrThrow(String userUid) {
-        User user = userService.findByFirebaseUid(userUid);
+        UserResponse user = userService.findByFirebaseUid(userUid);
         if (user == null) {
             throw new ResourceNotFoundException("User not found with UID: " + userUid);
         }
-        return user;
+        return mapToUser(user);
     }
     
     private MovieReview getReviewOrThrow(Long reviewId) {
@@ -158,6 +159,17 @@ public class CommentServiceImpl implements CommentService {
                 .likesCount(comment.getLikesCount())
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
+                .build();
+    }
+
+    private User mapToUser(UserResponse userResponse) {
+        return User.builder()
+                .firebaseUid(userResponse.getFirebaseUid())
+                .email(userResponse.getEmail())
+                .displayName(userResponse.getDisplayName())
+                .profileImageUrl(userResponse.getProfileImageUrl())
+                .createdAt(userResponse.getCreatedAt())
+                .lastLogin(userResponse.getLastLogin())
                 .build();
     }
 }
