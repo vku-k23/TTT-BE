@@ -1,7 +1,7 @@
 -- Review likes (to track which users liked which reviews)
 CREATE TABLE IF NOT EXISTS `review_likes` (
     `review_id` BIGINT NOT NULL,
-    `user_id` VARCHAR(100) NOT NULL,
+    `user_id` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`review_id`, `user_id`),
     FOREIGN KEY (`review_id`) REFERENCES `movie_reviews` (`id`) ON DELETE CASCADE,
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `review_likes` (
 -- Comment likes (to track which users liked which comments)
 CREATE TABLE IF NOT EXISTS `comment_likes` (
     `comment_id` BIGINT NOT NULL,
-    `user_id` VARCHAR(100) NOT NULL,
+    `user_id` VARCHAR(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`comment_id`, `user_id`),
     FOREIGN KEY (`comment_id`) REFERENCES `comments` (`id`) ON DELETE CASCADE,
