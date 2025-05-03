@@ -7,7 +7,7 @@ import com.ttt.cinevibe.dto.response.UserResponse;
 public interface UserService {
     UserResponse currentUser(String firebaseUid);
 
-    UserResponse createUser(UserRegisterRequest userRegisterRequest);
+    UserResponse syncUser(UserRegisterRequest userRegisterRequest);
 
     UserResponse updateUserProfile(UserProfileRequest profileRequest);
 

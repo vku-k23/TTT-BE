@@ -32,12 +32,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse createUser(UserRegisterRequest userRegisterRequest) {
+    public UserResponse syncUser(UserRegisterRequest userRegisterRequest) {
         log.debug("Creating new user with Firebase UID: {}", userRegisterRequest.getFirebaseUid());
 
-        // Check if user already exists
-        if (userRepository.existsById(userRegisterRequest.getFirebaseUid())) {
-            throw new IllegalStateException("User with this UID already exists");
+        boolean exists = userRepository.existsById(userRegisterRequest.getFirebaseUid());
+        if (exists) {
+            return currentUser(userRegisterRequest.getFirebaseUid());
         }
 
         User user = new User();
@@ -60,7 +60,6 @@ public class UserServiceImpl implements UserService {
         User existingUser = userRepository.findById(userProfileRequest.getFirebaseUid())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with UID: " + userProfileRequest.getFirebaseUid()));
 
-        // Update user fields
         if (userProfileRequest.getDisplayName() != null) {
             existingUser.setDisplayName(userProfileRequest.getDisplayName());
         }

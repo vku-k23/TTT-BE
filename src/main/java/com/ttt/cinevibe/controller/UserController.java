@@ -44,7 +44,7 @@ public class UserController {
     @Operation(summary = "Register new user", description = "Creates a new user account")
     @PostMapping("/register")
     public ResponseEntity<UserResponse> registerUser(@Valid @RequestBody UserRegisterRequest userRegisterRequest) {
-        UserResponse user = userService.createUser(userRegisterRequest);
+        UserResponse user = userService.syncUser(userRegisterRequest);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)

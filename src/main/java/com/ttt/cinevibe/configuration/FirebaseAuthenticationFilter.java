@@ -88,7 +88,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
                     .displayName(name != null ? name : (email != null ? email : uid))
                     .build();
 
-            userService.createUser(userRegisterRequest);
+            userService.syncUser(userRegisterRequest);
 
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     uid,
