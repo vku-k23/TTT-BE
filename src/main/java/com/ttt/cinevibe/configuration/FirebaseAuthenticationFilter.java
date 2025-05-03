@@ -1,16 +1,14 @@
 package com.ttt.cinevibe.configuration;
 
-import com.google.cloud.storage.Acl.User;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseAuthException;
 import com.google.firebase.auth.FirebaseToken;
-import com.ttt.cinevibe.dto.request.UserRequest;
+import com.ttt.cinevibe.dto.request.UserRegisterRequest;
 import com.ttt.cinevibe.service.UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,17 +57,15 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
                 String uid = decodedToken.getUid();
                 String email = decodedToken.getEmail();
                 String name = decodedToken.getName();
-                String picture = decodedToken.getPicture();
 
-                UserRequest userRequest = UserRequest.builder()
+                UserRegisterRequest userRegisterRequest = UserRegisterRequest.builder()
                         .firebaseUid(uid)
                         .email(email)
                         .displayName(name != null ? name : email)
-                        .profileImageUrl(picture)
                         .build();
                 
                 // Sync user data with database
-                userService.createOrUpdateUser(userRequest);
+                userService.createUser(userRegisterRequest);
                 
                 // Create authentication object
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

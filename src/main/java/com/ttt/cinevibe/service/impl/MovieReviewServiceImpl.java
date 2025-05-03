@@ -21,22 +21,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class MovieReviewServiceImpl implements MovieReviewService {
 
     private final MovieReviewRepository reviewRepository;
     private final UserService userService;
     private final CommentService commentService;
-
-    // Using constructor injection to avoid circular dependency with commentService
-    public MovieReviewServiceImpl(
-            MovieReviewRepository reviewRepository,
-            UserService userService,
-            @Lazy CommentService commentService) {
-        this.reviewRepository = reviewRepository;
-        this.userService = userService;
-        this.commentService = commentService;
-    }
 
     @Override
     public Page<MovieReviewResponse> getUserReviews(String userUid, Pageable pageable) {
@@ -166,7 +157,7 @@ public class MovieReviewServiceImpl implements MovieReviewService {
     }
     
     private User getUserOrThrow(String userUid) {
-        UserResponse user = userService.findByFirebaseUid(userUid);
+        UserResponse user = userService.currentUser(userUid);
         if (user == null) {
             throw new ResourceNotFoundException("User not found with UID: " + userUid);
         }

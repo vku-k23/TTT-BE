@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserRequest {
+public class UserRegisterRequest {
     @NotNull(message = "Firebase UID is required")
     private String firebaseUid;
 
@@ -26,5 +26,4 @@ public class UserRequest {
     @Size(min = 1, max = 50, message = "Display name must be between 1 and 50 characters")
     private String displayName;
 
-    private String profileImageUrl;
 }

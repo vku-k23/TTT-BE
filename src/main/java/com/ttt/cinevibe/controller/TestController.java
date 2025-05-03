@@ -27,8 +27,7 @@ public class TestController {
     @Value("${firebase.enabled:true}")
     private boolean firebaseEnabled;
     
-    @Autowired(required = false)
-    private FirebaseAuth firebaseAuth;
+    private final FirebaseAuth firebaseAuth;
 
     @Operation(summary = "Generate test token", description = "Development only: generates a test authentication for the specified UID")
     @GetMapping("/token/{uid}")

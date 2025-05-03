@@ -111,7 +111,7 @@ public class WatchlistServiceImpl implements WatchlistService {
     }
     
     private User getUserOrThrow(String userUid) {
-        UserResponse user = userService.findByFirebaseUid(userUid);
+        UserResponse user = userService.currentUser(userUid);
         if (user == null) {
             throw new ResourceNotFoundException("User not found with UID: " + userUid);
         }

@@ -25,6 +25,7 @@ public class SecurityConfig {
                                 "/api/info/**",
                                 "/api/test/**",
                                 "/api/user/test/**",
+                                "/api/user/register",
                                 // Public social endpoints
                                 "/api/watchlists/public/**",
                                 "/api/reviews/movie/**",

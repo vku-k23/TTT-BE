@@ -1,7 +1,9 @@
 package com.ttt.cinevibe.service.impl;
 
-import com.ttt.cinevibe.dto.request.UserRequest;
+import com.ttt.cinevibe.dto.request.UserProfileRequest;
+import com.ttt.cinevibe.dto.request.UserRegisterRequest;
 import com.ttt.cinevibe.dto.response.UserResponse;
+import com.ttt.cinevibe.exception.ResourceNotFoundException;
 import com.ttt.cinevibe.model.User;
 import com.ttt.cinevibe.repository.UserRepository;
 import com.ttt.cinevibe.service.UserService;
@@ -20,28 +22,59 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Override
-    public UserResponse findByFirebaseUid(String firebaseUid) {
+    public UserResponse currentUser(String firebaseUid) {
         log.debug("Finding user with Firebase UID: {}", firebaseUid);
-        User user = userRepository.findById(firebaseUid).orElse(null);
+        User user = userRepository.findById(firebaseUid)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with UID: " + firebaseUid));
 
         return mapToUserResponse(user);
     }
 
     @Override
     @Transactional
-    public UserResponse createOrUpdateUser(UserRequest userRequest) {
-        log.debug("Creating or updating user with Firebase UID: {}", userRequest.getFirebaseUid());
-        User user = userRepository.findById(userRequest.getFirebaseUid()).orElse(new User());
+    public UserResponse createUser(UserRegisterRequest userRegisterRequest) {
+        log.debug("Creating new user with Firebase UID: {}", userRegisterRequest.getFirebaseUid());
 
-        user.setFirebaseUid(userRequest.getFirebaseUid());
-        user.setEmail(userRequest.getEmail());
-        user.setDisplayName(userRequest.getDisplayName() != null ? userRequest.getDisplayName() : userRequest.getEmail());
-        user.setProfileImageUrl(userRequest.getProfileImageUrl());
+        // Check if user already exists
+        if (userRepository.existsById(userRegisterRequest.getFirebaseUid())) {
+            throw new IllegalStateException("User with this UID already exists");
+        }
+
+        User user = new User();
+        user.setFirebaseUid(userRegisterRequest.getFirebaseUid());
+        user.setEmail(userRegisterRequest.getEmail());
+        user.setDisplayName(userRegisterRequest.getDisplayName() != null ? userRegisterRequest.getDisplayName() : userRegisterRequest.getEmail());
+        user.setCreatedAt(LocalDateTime.now());
         user.setLastLogin(LocalDateTime.now());
 
-        User userSaved = userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        log.info("Created new user with Firebase UID: {}", savedUser.getFirebaseUid());
 
-        return mapToUserResponse(userSaved);
+        return mapToUserResponse(savedUser);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateUserProfile(UserProfileRequest userProfileRequest) {
+
+        User existingUser = userRepository.findById(userProfileRequest.getFirebaseUid())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with UID: " + userProfileRequest.getFirebaseUid()));
+
+        // Update user fields
+        if (userProfileRequest.getDisplayName() != null) {
+            existingUser.setDisplayName(userProfileRequest.getDisplayName());
+        }
+
+        if (userProfileRequest.getProfileImageUrl() != null) {
+            existingUser.setProfileImageUrl(userProfileRequest.getProfileImageUrl());
+        }
+
+        existingUser.setLastLogin(LocalDateTime.now());
+
+        User savedUser = userRepository.save(existingUser);
+        log.info("Updated user with Firebase UID: {}", savedUser.getFirebaseUid());
+
+        return mapToUserResponse(savedUser);
     }
 
     @Override
@@ -60,6 +93,11 @@ public class UserServiceImpl implements UserService {
                 .email(user.getEmail())
                 .displayName(user.getDisplayName())
                 .profileImageUrl(user.getProfileImageUrl())
+                .bio(user.getBio())
+                .favoriteGenre(user.getFavoriteGenre())
+                .reviewCount(user.getReviewCount())
+                .followersCount(user.getFollowersCount())
+                .followingCount(user.getFollowingCount())
                 .createdAt(user.getCreatedAt())
                 .lastLogin(user.getLastLogin())
                 .build();
