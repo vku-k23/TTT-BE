@@ -1,5 +1,4 @@
 # CineVibe - Backend Application
-# vietviet08
 
 CineVibe is a social movie platform that allows users to discover, review, and share their movie experiences with friends. This repository contains the backend API for the CineVibe application.
 
