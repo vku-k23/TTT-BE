@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class  User {
 
     @Id
     @Column(name = "firebase_uid", length = 128)
@@ -30,6 +30,21 @@ public class User {
     
     @Column(name = "profile_image_url")
     private String profileImageUrl;
+    
+    @Column(name = "bio", length = 500)
+    private String bio;
+    
+    @Column(name = "favorite_genre")
+    private String favoriteGenre;
+    
+    @Column(name = "review_count")
+    private Integer reviewCount = 0;
+    
+    @Column(name = "followers_count")
+    private Integer followersCount = 0;
+    
+    @Column(name = "following_count")
+    private Integer followingCount = 0;
     
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

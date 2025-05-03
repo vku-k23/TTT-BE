@@ -20,11 +20,11 @@ import java.util.Map;
 
 @Tag(name = "User Connection API", description = "Endpoints to manage user connections (follows, friendships)")
 @RestController
-@RequestMapping("/api/connections")
 @RequiredArgsConstructor
+@RequestMapping("/api/connections")
 public class UserConnectionController {
 
-    private final UserConnectionService connectionService;
+    private final UserConnectionService userConnectionService;
 
     @Operation(summary = "Get users I follow", description = "Returns all users the authenticated user follows")
     @GetMapping("/following")
@@ -32,7 +32,7 @@ public class UserConnectionController {
             Authentication authentication,
             @PageableDefault(size = 20) Pageable pageable) {
         String userUid = authentication.getName();
-        return ResponseEntity.ok(connectionService.getFollowing(userUid, pageable));
+        return ResponseEntity.ok(userConnectionService.getFollowing(userUid, pageable));
     }
 
     @Operation(summary = "Get my followers", description = "Returns all users who follow the authenticated user")
@@ -41,7 +41,7 @@ public class UserConnectionController {
             Authentication authentication,
             @PageableDefault(size = 20) Pageable pageable) {
         String userUid = authentication.getName();
-        return ResponseEntity.ok(connectionService.getFollowers(userUid, pageable));
+        return ResponseEntity.ok(userConnectionService.getFollowers(userUid, pageable));
     }
 
     @Operation(summary = "Get pending follow requests", description = "Returns all pending follow requests for the authenticated user")
@@ -50,7 +50,7 @@ public class UserConnectionController {
             Authentication authentication,
             @PageableDefault(size = 20) Pageable pageable) {
         String userUid = authentication.getName();
-        return ResponseEntity.ok(connectionService.getPendingRequests(userUid, pageable));
+        return ResponseEntity.ok(userConnectionService.getPendingRequests(userUid, pageable));
     }
 
     @Operation(summary = "Follow a user", description = "Create a follow request to another user")
@@ -59,7 +59,7 @@ public class UserConnectionController {
             @Valid @RequestBody UserConnectionRequest request,
             Authentication authentication) {
         String userUid = authentication.getName();
-        UserConnectionResponse created = connectionService.followUser(userUid, request);
+        UserConnectionResponse created = userConnectionService.followUser(userUid, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -69,7 +69,7 @@ public class UserConnectionController {
             @PathVariable Long connectionId,
             Authentication authentication) {
         String userUid = authentication.getName();
-        return ResponseEntity.ok(connectionService.acceptFollowRequest(userUid, connectionId));
+        return ResponseEntity.ok(userConnectionService.acceptFollowRequest(userUid, connectionId));
     }
 
     @Operation(summary = "Reject follow request", description = "Reject a pending follow request")
@@ -78,7 +78,7 @@ public class UserConnectionController {
             @PathVariable Long connectionId,
             Authentication authentication) {
         String userUid = authentication.getName();
-        connectionService.rejectFollowRequest(userUid, connectionId);
+        userConnectionService.rejectFollowRequest(userUid, connectionId);
         return ResponseEntity.noContent().build();
     }
 
@@ -88,7 +88,7 @@ public class UserConnectionController {
             @PathVariable String targetUserUid,
             Authentication authentication) {
         String userUid = authentication.getName();
-        connectionService.unfollowUser(userUid, targetUserUid);
+        userConnectionService.unfollowUser(userUid, targetUserUid);
         return ResponseEntity.noContent().build();
     }
 
@@ -98,7 +98,7 @@ public class UserConnectionController {
             @PathVariable String followerUid,
             Authentication authentication) {
         String userUid = authentication.getName();
-        connectionService.removeFollower(userUid, followerUid);
+        userConnectionService.removeFollower(userUid, followerUid);
         return ResponseEntity.noContent().build();
     }
 
@@ -108,8 +108,8 @@ public class UserConnectionController {
             @PathVariable String targetUserUid,
             Authentication authentication) {
         String userUid = authentication.getName();
-        boolean isFollowing = connectionService.isFollowing(userUid, targetUserUid);
-        ConnectionStatus status = connectionService.getConnectionStatus(userUid, targetUserUid);
+        boolean isFollowing = userConnectionService.isFollowing(userUid, targetUserUid);
+        ConnectionStatus status = userConnectionService.getConnectionStatus(userUid, targetUserUid);
         
         return ResponseEntity.ok(Map.of(
             "isFollowing", isFollowing,

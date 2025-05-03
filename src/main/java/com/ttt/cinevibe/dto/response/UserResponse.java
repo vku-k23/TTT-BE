@@ -15,6 +15,11 @@ public class UserResponse {
     private String displayName;
     private String email;
     private String profileImageUrl;
+    private String bio;
+    private String favoriteGenre;
+    private Integer reviewCount;
+    private Integer followersCount;
+    private Integer followingCount;
     private LocalDateTime createdAt;
     private LocalDateTime lastLogin;
 }

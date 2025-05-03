@@ -27,6 +27,7 @@ import java.util.Optional;
 public class UserConnectionServiceImpl implements UserConnectionService {
 
     private final UserConnectionRepository connectionRepository;
+
     private final UserService userService;
 
     @Override
@@ -210,7 +211,7 @@ public class UserConnectionServiceImpl implements UserConnectionService {
     }
     
     private User getUserOrThrow(String userUid) {
-        UserResponse user = userService.findByFirebaseUid(userUid);
+        UserResponse user = userService.currentUser(userUid);
         if (user == null) {
             throw new ResourceNotFoundException("User not found with UID: " + userUid);
         }
