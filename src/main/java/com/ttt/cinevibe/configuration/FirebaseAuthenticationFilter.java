@@ -32,6 +32,10 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     @Value("${firebase.enabled:true}")
     private boolean firebaseEnabled;
 
+    // Cho phép development mode để sử dụng test token
+    @Value("${app.development-mode:true}")
+    private boolean developmentMode;
+
     // Constructor with @Autowired(required = false) for FirebaseAuth
     public FirebaseAuthenticationFilter(@Autowired(required = false) FirebaseAuth firebaseAuth, UserService userService) {
         this.firebaseAuth = firebaseAuth;
@@ -52,38 +56,81 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
         String token = extractToken(request);
         
         if (StringUtils.hasText(token)) {
-            try {
-                FirebaseToken decodedToken = firebaseAuth.verifyIdToken(token);
-                String uid = decodedToken.getUid();
-                String email = decodedToken.getEmail();
-                String name = decodedToken.getName();
-
-                UserRegisterRequest userRegisterRequest = UserRegisterRequest.builder()
-                        .firebaseUid(uid)
-                        .email(email)
-                        .displayName(name != null ? name : email)
-                        .build();
-                
-                // Sync user data with database
-                userService.createUser(userRegisterRequest);
-                
-                // Create authentication object
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                    uid, 
-                    token, 
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-                );
-                
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.info("User authenticated: {}", uid);
-                
-            } catch (FirebaseAuthException e) {
-                log.error("Firebase authentication failed: {}", e.getMessage());
-                SecurityContextHolder.clearContext();
+            // Kiểm tra xem token có phải là test token không
+            if (developmentMode && token.startsWith("test_direct_token_")) {
+                // Xử lý test token
+                handleTestToken(token);
+            } else {
+                // Xử lý token Firebase thật
+                handleFirebaseToken(token);
             }
         }
         
         filterChain.doFilter(request, response);
+    }
+    
+    private void handleTestToken(String token) {
+        try {
+            // Trích xuất UID từ test token
+            String uid = token.substring("test_direct_token_".length());
+            
+            log.info("Processing test token for UID: {}", uid);
+            
+            // Tạo nếu người dùng không tồn tại
+            UserRegisterRequest userRegisterRequest = UserRegisterRequest.builder()
+                    .firebaseUid(uid)
+                    .email(uid + "@test.com")
+                    .displayName("Test User " + uid)
+                    .build();
+            
+            // Sync user data with database
+            userService.createUser(userRegisterRequest);
+            
+            // Set xác thực
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                uid, 
+                token, 
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+            );
+            
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.info("Test user authenticated: {}", uid);
+        } catch (Exception e) {
+            log.error("Test token authentication failed: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+        }
+    }
+    
+    private void handleFirebaseToken(String token) {
+        try {
+            FirebaseToken decodedToken = firebaseAuth.verifyIdToken(token);
+            String uid = decodedToken.getUid();
+            String email = decodedToken.getEmail();
+            String name = decodedToken.getName();
+
+            UserRegisterRequest userRegisterRequest = UserRegisterRequest.builder()
+                    .firebaseUid(uid)
+                    .email(email)
+                    .displayName(name != null ? name : email)
+                    .build();
+            
+            // Sync user data with database
+            userService.createUser(userRegisterRequest);
+            
+            // Create authentication object
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                uid, 
+                token, 
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+            );
+            
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.info("Firebase user authenticated: {}", uid);
+            
+        } catch (FirebaseAuthException e) {
+            log.error("Firebase authentication failed: {}", e.getMessage());
+            SecurityContextHolder.clearContext();
+        }
     }
     
     private String extractToken(HttpServletRequest request) {

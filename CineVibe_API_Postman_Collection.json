@@ -9,6 +9,11 @@
     {
       "key": "baseUrl",
       "value": "http://localhost:8081"
+    },
+    {
+      "key": "firebase_web_api_key",
+      "value": "YOUR_FIREBASE_WEB_API_KEY",
+      "description": "Enter your Firebase Web API key here"
     }
   ],
   "auth": {
@@ -22,6 +27,140 @@
     ]
   },
   "item": [
+    {
+      "name": "Firebase Authentication",
+      "item": [
+        {
+          "name": "Get Firebase Authentication Guide",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/test/auth-guide",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "test",
+                "auth-guide"
+              ]
+            },
+            "description": "Xem hướng dẫn đầy đủ về quy trình xác thực Firebase"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Custom Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/test/token/test_user_uid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "test",
+                "token",
+                "test_user_uid"
+              ]
+            },
+            "description": "Lấy Firebase custom token (cần đổi thành ID token)"
+          },
+          "response": []
+        },
+        {
+          "name": "Exchange Custom Token for ID Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token\": \"CUSTOM_TOKEN_FROM_PREVIOUS_STEP\",\n    \"returnSecureToken\": true\n}"
+            },
+            "url": {
+              "raw": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key={{firebase_web_api_key}}",
+              "protocol": "https",
+              "host": [
+                "identitytoolkit",
+                "googleapis",
+                "com"
+              ],
+              "path": [
+                "v1",
+                "accounts:signInWithCustomToken"
+              ],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "{{firebase_web_api_key}}"
+                }
+              ]
+            },
+            "description": "Đổi custom token thành ID token. Lưu ý: Bạn cần nhập Firebase Web API Key của mình vào biến môi trường."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Firebase Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token\": \"YOUR_ID_TOKEN\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/test/verify-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "test",
+                "verify-token"
+              ]
+            },
+            "description": "Kiểm tra và hiển thị thông tin từ Firebase ID token"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Test Direct Token (Dev Mode)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/test/direct-token/test_user_uid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "test",
+                "direct-token",
+                "test_user_uid"
+              ]
+            },
+            "description": "Lấy token test trực tiếp (chỉ dùng trong môi trường phát triển)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Các endpoint liên quan đến xác thực và lấy token Firebase"
+    },
     {
       "name": "Auth & User Management",
       "item": [

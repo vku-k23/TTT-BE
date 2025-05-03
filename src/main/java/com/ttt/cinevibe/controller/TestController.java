@@ -9,10 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +50,33 @@ public class TestController {
         }
     }
     
+    @Operation(summary = "Get direct auth token for testing", description = "Development only: creates a direct auth token for testing that can be used immediately")
+    @GetMapping("/direct-token/{uid}")
+    public ResponseEntity<Map<String, String>> getDirectTestToken(@PathVariable String uid) {
+        Map<String, String> response = new HashMap<>();
+        
+        if (!firebaseEnabled || firebaseAuth == null) {
+            response.put("message", "Firebase authentication is disabled. Token cannot be generated.");
+            return ResponseEntity.ok(response);
+        }
+        
+        try {
+            // Tạo một token trực tiếp cho UID được cung cấp
+            // Đây là một mô phỏng cho ID token Firebase thực
+            String directToken = "test_direct_token_" + uid;
+            
+            response.put("token", directToken);
+            response.put("tokenType", "Bearer");
+            response.put("usage", "Copy the token value and use it in the Authorization header as: Bearer token_value");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error creating direct token: {}", e.getMessage());
+            response.put("error", "Failed to create direct token: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+    
     @Operation(summary = "Test endpoint", description = "Development only: returns information about Firebase configuration")
     @GetMapping("/firebase-status")
     public ResponseEntity<Map<String, Object>> getFirebaseStatus() {
@@ -60,5 +84,75 @@ public class TestController {
         response.put("firebaseEnabled", firebaseEnabled);
         response.put("firebaseAuthInitialized", firebaseAuth != null);
         return ResponseEntity.ok(response);
+    }
+    
+    @Operation(summary = "Firebase Auth Guide", description = "Instructions for proper Firebase authentication flow")
+    @GetMapping("/auth-guide")
+    public ResponseEntity<Map<String, Object>> getFirebaseAuthGuide() {
+        Map<String, Object> guide = new HashMap<>();
+        
+        guide.put("title", "Hướng dẫn xác thực Firebase");
+        
+        Map<String, String> clientSideSteps = new HashMap<>();
+        clientSideSteps.put("step1", "Thêm Firebase Authentication vào ứng dụng Android");
+        clientSideSteps.put("step2", "Cho phép người dùng đăng nhập (email/password hoặc phương thức khác)");
+        clientSideSteps.put("step3", "Lấy ID token sau khi đăng nhập: FirebaseUser.getIdToken(false).addOnSuccessListener(token -> {})");
+        clientSideSteps.put("step4", "Thêm token vào header cho mọi request API: Authorization: Bearer {token}");
+        guide.put("client_side", clientSideSteps);
+        
+        Map<String, String> serverSideSteps = new HashMap<>();
+        serverSideSteps.put("note", "Server side đã được cấu hình để xác thực token Firebase trong FirebaseAuthenticationFilter");
+        serverSideSteps.put("step1", "Token từ client sẽ được xác thực với Firebase Admin SDK");
+        serverSideSteps.put("step2", "Nếu token hợp lệ, người dùng sẽ được tự động đăng ký hoặc đăng nhập");
+        serverSideSteps.put("step3", "Request sẽ được xử lý với thông tin người dùng đã xác thực");
+        guide.put("server_side", serverSideSteps);
+        
+        Map<String, String> testingInstructions = new HashMap<>();
+        testingInstructions.put("option1", "Sử dụng Firebase Console để tạo user và Firebase Auth Rest API để lấy token");
+        testingInstructions.put("option2", "Sử dụng Firebase Test Lab và một ứng dụng Android đơn giản để lấy token");
+        testingInstructions.put("option3", "Sử dụng endpoint /api/test/token/{uid} để lấy custom token, sau đó đổi thành ID token");
+        testingInstructions.put("custom_token_exchange_url", "https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=YOUR_WEB_API_KEY");
+        testingInstructions.put("custom_token_exchange_body", "{\"token\": \"CUSTOM_TOKEN\", \"returnSecureToken\": true}");
+        
+        guide.put("testing", testingInstructions);
+        
+        return ResponseEntity.ok(guide);
+    }
+    
+    @Operation(summary = "Verify Firebase Token", description = "Verifies a Firebase ID token and shows its contents")
+    @PostMapping("/verify-token")
+    public ResponseEntity<Map<String, Object>> verifyToken(@RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+        String token = request.get("token");
+        
+        if (!firebaseEnabled || firebaseAuth == null) {
+            response.put("error", "Firebase authentication is disabled");
+            return ResponseEntity.badRequest().body(response);
+        }
+        
+        if (token == null || token.isEmpty()) {
+            response.put("error", "Token is required");
+            return ResponseEntity.badRequest().body(response);
+        }
+        
+        try {
+            // Xác thực token và lấy thông tin
+            var decodedToken = firebaseAuth.verifyIdToken(token);
+            
+            response.put("valid", true);
+            response.put("uid", decodedToken.getUid());
+            response.put("email", decodedToken.getEmail());
+            response.put("name", decodedToken.getName());
+            response.put("claims", decodedToken.getClaims());
+            
+            // Hướng dẫn sử dụng token này trong các request khác
+            response.put("usage", "Sử dụng token này trong header: Authorization: Bearer " + token);
+            
+            return ResponseEntity.ok(response);
+        } catch (FirebaseAuthException e) {
+            response.put("valid", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 }
