@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class  User {
 
     @Id
     @Column(name = "firebase_uid", length = 128)

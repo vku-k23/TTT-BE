@@ -24,7 +24,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**",
                                 "/api/info/**",
                                 "/api/test/**",
-                                "/api/user/test/**",
                                 "/api/user/register",
                                 // Public social endpoints
                                 "/api/watchlists/public/**",

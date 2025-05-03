@@ -18,34 +18,35 @@ public class RepairFlyway implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         try {
-            System.out.println("Starting Flyway repair process...");
+            System.out.println("Starting Flyway migration process...");
 
             // Create a Flyway instance and point it to the database
             Flyway flyway = Flyway.configure()
                 .dataSource(dataSource)
                 .baselineOnMigrate(true)
                 .baselineVersion("0")
-                .cleanDisabled(false) // Explicitly enable cleaning
+                .cleanDisabled(true) // Disable cleaning by default to preserve data
                 .load();
 
             // Repair the flyway_schema_history table
             flyway.repair();
             System.out.println("Flyway repair completed successfully.");
             
-            // Clean database by default - will drop all tables and recreate
-            // Only skip if explicitly told not to clean with --no-clean argument
-            boolean shouldClean = !args.containsOption("no-clean");
+            // Only clean database if explicitly requested with --clean argument
+            boolean shouldClean = args.containsOption("clean");
             if (shouldClean) {
-                System.out.println("Cleaning the database (all data will be lost)...");
+                System.out.println("WARNING: Cleaning the database (all data will be lost)...");
                 flyway.clean();
                 System.out.println("Database cleaned successfully.");
+            } else {
+                System.out.println("Skipping database clean operation to preserve existing data.");
             }
             
             // Attempt migration
             flyway.migrate();
             System.out.println("Flyway migration completed successfully.");
         } catch (Exception e) {
-            System.err.println("Error during Flyway repair: " + e.getMessage());
+            System.err.println("Error during Flyway operations: " + e.getMessage());
             e.printStackTrace();
         }
     }
