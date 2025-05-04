@@ -8,8 +8,10 @@ pipeline {
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
         
+        // Generate timestamp for build identification
         BUILD_TIMESTAMP = sh(script: "date +%Y%m%d%H%M%S", returnStdout: true).trim()
         
+        // Ensure commit hash is properly captured after checkout
         GIT_COMMIT_SHORT = ""
         IMAGE_VERSION = ""
     }
@@ -17,8 +19,10 @@ pipeline {
     stages {
         stage('Prepare Environment') {
             steps {
+                // Ensure workspace is clean
                 cleanWs()
                 
+                // Force checkout with no cache
                 checkout([$class: 'GitSCM', 
                     branches: [[name: '*/deploy']], 
                     extensions: [
@@ -29,15 +33,19 @@ pipeline {
                     userRemoteConfigs: [[credentialsId: 'git', url: 'https://github.com/vku-k23/TTT-BE.git']]
                 ])
                 
+                // Set commit hash after checkout
                 script {
                     GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     IMAGE_VERSION = "${BUILD_NUMBER}-${GIT_COMMIT_SHORT}-${BUILD_TIMESTAMP}"
                     
+                    def FULL_COMMIT = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
+                    
+                    // Print debug information
                     sh "echo 'Jenkins BUILD_NUMBER: ${BUILD_NUMBER}'"
                     sh "echo 'Current commit: ${GIT_COMMIT_SHORT}'"
-                    sh "echo 'Full commit hash: $(git rev-parse HEAD)'"
+                    sh "echo 'Full commit hash: ${FULL_COMMIT}'"
                     sh "echo 'Building image version: ${IMAGE_VERSION}'"
-                    sh "git log -n 3 --pretty=format:'%h - %s (%an, %ar)'" // Show last 3 commits
+                    sh 'git log -n 3 --pretty=format:"%h - %s (%an, %ar)"' // Show last 3 commits
                 }
             }
         }
