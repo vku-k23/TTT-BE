@@ -70,11 +70,18 @@ pipeline {
             steps {
                 script {
                     def DOCKER_COMPOSE_PATH = "/home/ubuntu/cinevibe/docker-compose.yml"
-
+                    
                     sh "sed -i 's|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:[^ ]*|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION}|g' ${DOCKER_COMPOSE_PATH}"
-
-                    sh "docker compose down || true"
-                    sh "docker compose up -d"
+                    
+                    sh "echo 'Updated docker-compose.yml:'"
+                    sh "cat ${DOCKER_COMPOSE_PATH}"
+                    
+                    sh "docker pull ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION}"
+                    
+                    sh "cd /home/ubuntu/cinevibe && docker compose -f ${DOCKER_COMPOSE_PATH} down --remove-orphans || true"
+                    sh "cd /home/ubuntu/cinevibe && docker compose -f ${DOCKER_COMPOSE_PATH} up -d --force-recreate"
+                    
+                    sh "docker ps | grep ${APP_NAME}"
                 }
             }
         }
