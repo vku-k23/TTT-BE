@@ -8,7 +8,6 @@ pipeline {
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
         
-        // Use GIT_COMMIT environment variable that Jenkins sets automatically
         GIT_COMMIT_SHORT = "${GIT_COMMIT[0..7]}"
         IMAGE_VERSION = "${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
     }
@@ -16,16 +15,23 @@ pipeline {
     stages {
         stage('Checkout Latest Code') {
             steps {
-                checkout scm
+                cleanWs()
+                
+                checkout([$class: 'GitSCM', 
+                    branches: [[name: '*/deploy']], 
+                    extensions: [[$class: 'CleanBeforeCheckout']], 
+                    userRemoteConfigs: [[credentialsId: 'git', url: 'https://github.com/vku-k23/TTT-BE.git']]
+                ])
                 
                 sh "echo 'Building from commit: ${GIT_COMMIT}'"
+                sh "git rev-parse HEAD"
             }
         }
         
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} ."
+                    sh "docker build --no-cache -t ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} ."
                     sh "docker tag ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest"
                 }
             }
