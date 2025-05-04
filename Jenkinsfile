@@ -10,32 +10,11 @@ pipeline {
         IMAGE_VERSION = "${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
     }
     
-    triggers {
-        githubPush()
-    }
-    
     stages {
-        stage('Check Branch') {
-            steps {
-                script {
-                    def branch = sh(script: "git rev-parse --abbrev-ref HEAD", returnStdout: true).trim()
-                    if (branch != 'deploy') {
-                        error("Not on deploy branch. Aborting build.")
-                    }
-                }
-            }
-        }
-        
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-        
         stage('Build Application') {
             steps {
                 sh 'chmod +x mvnw'
-                sh './mvnw clean package -DskipTests'
+                sh './mvnw clean package -DskipTests=true'
             }
         }
         
@@ -70,17 +49,18 @@ pipeline {
             }
         }
         
-        stage('Update Docker Compose') {
-        steps {
-            script {
-                def DOCKER_COMPOSE_PATH = "/path/to/your/docker-compose.yml"
-                
-                sh "sed -i 's|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:[^ ]*|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION}|g' ${DOCKER_COMPOSE_PATH}"
-                
-                sh "cd \$(dirname ${DOCKER_COMPOSE_PATH}) && docker-compose down && docker-compose up -d"
+        stage('Deploy Application') {
+            steps {
+                script {
+                    def DOCKER_COMPOSE_PATH = "/home/ubuntu/cinevibe/docker-compose.yml"
+                    
+                    sh "sed -i 's|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:[^ ]*|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION}|g' ${DOCKER_COMPOSE_PATH}"
+                    
+                    sh "docker-compose down || true"
+                    sh "docker-compose up -d"
+                }
             }
         }
-}
         
         stage('Notify Deployment') {
             steps {
@@ -97,6 +77,8 @@ pipeline {
             sh "docker rmi ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest || true"
             
             sh "docker logout"
+            
+            cleanWs()
         }
         
         success {
