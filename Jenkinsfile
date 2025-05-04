@@ -8,23 +8,37 @@ pipeline {
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
         
-        GIT_COMMIT_SHORT = "${GIT_COMMIT[0..7]}"
-        IMAGE_VERSION = "${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
+        BUILD_TIMESTAMP = sh(script: "date +%Y%m%d%H%M%S", returnStdout: true).trim()
+        
+        GIT_COMMIT_SHORT = ""
+        IMAGE_VERSION = ""
     }
     
     stages {
-        stage('Checkout Latest Code') {
+        stage('Prepare Environment') {
             steps {
                 cleanWs()
                 
                 checkout([$class: 'GitSCM', 
                     branches: [[name: '*/deploy']], 
-                    extensions: [[$class: 'CleanBeforeCheckout']], 
+                    extensions: [
+                        [$class: 'CleanBeforeCheckout'],
+                        [$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false],
+                        [$class: 'CheckoutOption', timeout: 30]
+                    ], 
                     userRemoteConfigs: [[credentialsId: 'git', url: 'https://github.com/vku-k23/TTT-BE.git']]
                 ])
                 
-                sh "echo 'Building from commit: ${GIT_COMMIT}'"
-                sh "git rev-parse HEAD"
+                script {
+                    GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+                    IMAGE_VERSION = "${BUILD_NUMBER}-${GIT_COMMIT_SHORT}-${BUILD_TIMESTAMP}"
+                    
+                    sh "echo 'Jenkins BUILD_NUMBER: ${BUILD_NUMBER}'"
+                    sh "echo 'Current commit: ${GIT_COMMIT_SHORT}'"
+                    sh "echo 'Full commit hash: $(git rev-parse HEAD)'"
+                    sh "echo 'Building image version: ${IMAGE_VERSION}'"
+                    sh "git log -n 3 --pretty=format:'%h - %s (%an, %ar)'" // Show last 3 commits
+                }
             }
         }
         
@@ -33,6 +47,9 @@ pipeline {
                 script {
                     sh "docker build --no-cache -t ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} ."
                     sh "docker tag ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest"
+                    
+                    // Verify the build image exists
+                    sh "docker images | grep ${DOCKER_HUB_USERNAME}/${APP_NAME}"
                 }
             }
         }
