@@ -52,12 +52,12 @@ public class UserController {
     }
 
     @Operation(summary = "Update user profile", description = "Updates the current user's profile information")
-    @PutMapping("/me")
+    @PutMapping("/profile")
     public ResponseEntity<UserResponse> updateUserProfile(
             @Valid @RequestBody UserProfileRequest profileRequest,
             Authentication authentication) {
-//        String firebaseUid = (String) authentication.getPrincipal();
-        UserResponse user = userService.updateUserProfile(profileRequest);
+        String firebaseUid = (String) authentication.getPrincipal();
+        UserResponse user = userService.updateUserProfile(firebaseUid, profileRequest);
 
         return ResponseEntity
                 .status(HttpStatus.OK)

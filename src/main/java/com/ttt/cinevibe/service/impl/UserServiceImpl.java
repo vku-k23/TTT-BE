@@ -55,7 +55,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateUserProfile(UserProfileRequest userProfileRequest) {
+    public UserResponse updateUserProfile(String firebaseUid, UserProfileRequest userProfileRequest) {
+
+        log.info("Updating user with Firebase UID: {}", firebaseUid);
+        log.info("User profile request: {}", userProfileRequest.getFirebaseUid());
+
+        if(!firebaseUid.equals(userProfileRequest.getFirebaseUid())) {
+            throw new IllegalArgumentException("Firebase UID in request does not match authenticated user.");
+        }
 
         User existingUser = userRepository.findById(userProfileRequest.getFirebaseUid())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with UID: " + userProfileRequest.getFirebaseUid()));
@@ -66,6 +73,14 @@ public class UserServiceImpl implements UserService {
 
         if (userProfileRequest.getProfileImageUrl() != null) {
             existingUser.setProfileImageUrl(userProfileRequest.getProfileImageUrl());
+        }
+
+        if(userProfileRequest.getBio() != null) {
+            existingUser.setBio(userProfileRequest.getBio());
+        }
+
+        if (userProfileRequest.getFavoriteGenre() != null) {
+            existingUser.setFavoriteGenre(userProfileRequest.getFavoriteGenre());
         }
 
         existingUser.setLastLogin(LocalDateTime.now());

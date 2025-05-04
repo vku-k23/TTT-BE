@@ -9,7 +9,7 @@ public interface UserService {
 
     UserResponse syncUser(UserRegisterRequest userRegisterRequest);
 
-    UserResponse updateUserProfile(UserProfileRequest profileRequest);
+    UserResponse updateUserProfile(String firebaseUid, UserProfileRequest profileRequest);
 
     void updateLastLogin(String firebaseUid);
 }
