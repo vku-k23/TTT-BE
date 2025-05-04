@@ -49,7 +49,6 @@ pipeline {
             steps {
                 script {
                     sh "docker build --no-cache -t ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} ."
-                    sh "docker tag ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest"
 
                     sh "docker images | grep ${DOCKER_HUB_USERNAME}/${APP_NAME}"
                 }
