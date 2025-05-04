@@ -22,7 +22,7 @@ services:
       - cinevibe-network
 
   cinevibe:
-    image: vietquoc2408/cinevibe:1.0.0
+    image: vietquoc2408/cinevibe:17-c0100a75
     container_name: cinevibe
     restart: always
     ports:
