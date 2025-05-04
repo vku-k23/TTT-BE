@@ -42,7 +42,7 @@ public class UserController {
     }
 
     @Operation(summary = "Register new user", description = "Creates a new user account")
-    @PostMapping("/register")
+    @PostMapping("/sync")
     public ResponseEntity<UserResponse> registerUser(@Valid @RequestBody UserRegisterRequest userRegisterRequest) {
         UserResponse user = userService.syncUser(userRegisterRequest);
 
@@ -52,7 +52,7 @@ public class UserController {
     }
 
     @Operation(summary = "Update user profile", description = "Updates the current user's profile information")
-    @PutMapping("/profile")
+    @PutMapping("/me")
     public ResponseEntity<UserResponse> updateUserProfile(
             @Valid @RequestBody UserProfileRequest profileRequest,
             Authentication authentication) {
