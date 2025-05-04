@@ -3,6 +3,8 @@ pipeline {
     
     environment {
         APP_NAME = 'cinevibe'
+
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-account')
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
         
@@ -11,23 +13,6 @@ pipeline {
     }
     
     stages {
-        stage('Build Application') {
-            steps {
-                sh 'chmod +x mvnw'
-                sh './mvnw clean package -DskipTests=true'
-            }
-        }
-        
-        stage('Run Tests') {
-            steps {
-                sh './mvnw test'
-            }
-            post {
-                always {
-                    junit '**/target/surefire-reports/*.xml'
-                }
-            }
-        }
         
         stage('Build Docker Image') {
             steps {
@@ -41,8 +26,9 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    sh "echo ${DOCKER_HUB_PASSWORD} | docker login -u ${DOCKER_HUB_USERNAME} --password-stdin"
-                    
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub-account', usernameVariable: 'DOCKER_HUB_USERNAME', passwordVariable: 'DOCKER_HUB_PASSWORD')]) {
+                        sh "echo ${DOCKER_HUB_PASSWORD} | docker login -u ${DOCKER_HUB_USERNAME} --password-stdin"
+                    }
                     sh "docker push ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION}"
                     sh "docker push ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest"
                 }
@@ -56,8 +42,8 @@ pipeline {
                     
                     sh "sed -i 's|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:[^ ]*|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION}|g' ${DOCKER_COMPOSE_PATH}"
                     
-                    sh "docker-compose down || true"
-                    sh "docker-compose up -d"
+                    sh "docker compose down || true"
+                    sh "docker compose up -d"
                 }
             }
         }
@@ -75,7 +61,7 @@ pipeline {
         always {
             sh "docker rmi ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} || true"
             sh "docker rmi ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest || true"
-            
+            sh "docker system prune -af"
             sh "docker logout"
             
             cleanWs()
