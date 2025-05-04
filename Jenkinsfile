@@ -7,6 +7,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('dockerhub-account')
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
+        FIREBASE_SERVICE_ACCOUNT = credentials('firebase-service-account') // Thêm credential cho Firebase
         
         BUILD_TIMESTAMP = sh(script: "date +%Y%m%d%H%M%S", returnStdout: true).trim()
 
@@ -35,12 +36,21 @@ pipeline {
 
                     def FULL_COMMIT = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
 
-                    // Print debug information
                     sh "echo 'Jenkins BUILD_NUMBER: ${BUILD_NUMBER}'"
                     sh "echo 'Current commit: ${GIT_COMMIT_SHORT}'"
                     sh "echo 'Full commit hash: ${FULL_COMMIT}'"
                     sh "echo 'Building image version: ${IMAGE_VERSION}'"
                     sh 'git log -n 3 --pretty=format:"%h - %s (%an, %ar)"'
+                }
+                
+                script {
+                    sh 'mkdir -p src/main/resources'
+                    
+                    withCredentials([file(credentialsId: 'firebase-service-account', variable: 'FIREBASE_JSON')]) {
+                        sh 'cp $FIREBASE_JSON src/main/resources/firebase-service-account.json'
+                    }
+                    
+                    sh 'ls -la src/main/resources/firebase-service-account.json || echo "File not created"'
                 }
             }
         }
