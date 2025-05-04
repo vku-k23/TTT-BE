@@ -8,60 +8,54 @@ pipeline {
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
         
-        // Generate timestamp for build identification
         BUILD_TIMESTAMP = sh(script: "date +%Y%m%d%H%M%S", returnStdout: true).trim()
-        
-        // Ensure commit hash is properly captured after checkout
+
         GIT_COMMIT_SHORT = ""
         IMAGE_VERSION = ""
     }
-    
+
     stages {
         stage('Prepare Environment') {
             steps {
-                // Ensure workspace is clean
                 cleanWs()
-                
-                // Force checkout with no cache
-                checkout([$class: 'GitSCM', 
-                    branches: [[name: '*/deploy']], 
+
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/deploy']],
                     extensions: [
                         [$class: 'CleanBeforeCheckout'],
                         [$class: 'CloneOption', depth: 0, noTags: false, reference: '', shallow: false],
                         [$class: 'CheckoutOption', timeout: 30]
-                    ], 
+                    ],
                     userRemoteConfigs: [[credentialsId: 'git', url: 'https://github.com/vku-k23/TTT-BE.git']]
                 ])
-                
-                // Set commit hash after checkout
+
                 script {
                     GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
                     IMAGE_VERSION = "${BUILD_NUMBER}-${GIT_COMMIT_SHORT}-${BUILD_TIMESTAMP}"
-                    
+
                     def FULL_COMMIT = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
-                    
+
                     // Print debug information
                     sh "echo 'Jenkins BUILD_NUMBER: ${BUILD_NUMBER}'"
                     sh "echo 'Current commit: ${GIT_COMMIT_SHORT}'"
                     sh "echo 'Full commit hash: ${FULL_COMMIT}'"
                     sh "echo 'Building image version: ${IMAGE_VERSION}'"
-                    sh 'git log -n 3 --pretty=format:"%h - %s (%an, %ar)"' // Show last 3 commits
+                    sh 'git log -n 3 --pretty=format:"%h - %s (%an, %ar)"'
                 }
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 script {
                     sh "docker build --no-cache -t ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} ."
                     sh "docker tag ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest"
-                    
-                    // Verify the build image exists
+
                     sh "docker images | grep ${DOCKER_HUB_USERNAME}/${APP_NAME}"
                 }
             }
         }
-        
+
         stage('Push to Docker Hub') {
             steps {
                 script {
@@ -69,7 +63,6 @@ pipeline {
                         sh "echo ${DOCKER_HUB_PASSWORD} | docker login -u ${DOCKER_HUB_USERNAME} --password-stdin"
                     }
                     sh "docker push ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION}"
-                    sh "docker push ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest"
                 }
             }
         }
@@ -78,9 +71,9 @@ pipeline {
             steps {
                 script {
                     def DOCKER_COMPOSE_PATH = "/home/ubuntu/cinevibe/docker-compose.yml"
-                    
+
                     sh "sed -i 's|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:[^ ]*|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION}|g' ${DOCKER_COMPOSE_PATH}"
-                    
+
                     sh "docker compose down || true"
                     sh "docker compose up -d"
                 }
@@ -99,7 +92,6 @@ pipeline {
     post {
         always {
             sh "docker rmi ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} || true"
-            sh "docker rmi ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest || true"
             sh "docker system prune -af"
             sh "docker logout"
             
