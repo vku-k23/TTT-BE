@@ -61,7 +61,7 @@ pipeline {
         always {
             sh "docker rmi ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION} || true"
             sh "docker rmi ${DOCKER_HUB_USERNAME}/${APP_NAME}:latest || true"
-            
+            sh "docker system prune -af"
             sh "docker logout"
             
             cleanWs()
