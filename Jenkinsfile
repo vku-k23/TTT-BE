@@ -13,23 +13,6 @@ pipeline {
     }
     
     stages {
-//         stage('Build Application') {
-//             steps {
-//                 sh 'chmod +x mvnw'
-//                 sh './mvnw clean package -DskipTests=true'
-//             }
-//         }
-//
-//         stage('Run Tests') {
-//             steps {
-//                 sh './mvnw test'
-//             }
-//             post {
-//                 always {
-//                     junit '**/target/surefire-reports/*.xml'
-//                 }
-//             }
-//         }
         
         stage('Build Docker Image') {
             steps {
