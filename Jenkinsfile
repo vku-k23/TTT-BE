@@ -42,8 +42,8 @@ pipeline {
                     
                     sh "sed -i 's|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:[^ ]*|image: ${DOCKER_HUB_USERNAME}/${APP_NAME}:${IMAGE_VERSION}|g' ${DOCKER_COMPOSE_PATH}"
                     
-                    sh "docker-compose down || true"
-                    sh "docker-compose up -d"
+                    sh "docker compose down || true"
+                    sh "docker compose up -d"
                 }
             }
         }
