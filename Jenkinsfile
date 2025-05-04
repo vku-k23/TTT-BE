@@ -8,11 +8,19 @@ pipeline {
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
         
-        GIT_COMMIT_SHORT = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+        // Use GIT_COMMIT environment variable that Jenkins sets automatically
+        GIT_COMMIT_SHORT = "${GIT_COMMIT[0..7]}"
         IMAGE_VERSION = "${BUILD_NUMBER}-${GIT_COMMIT_SHORT}"
     }
     
     stages {
+        stage('Checkout Latest Code') {
+            steps {
+                checkout scm
+                
+                sh "echo 'Building from commit: ${GIT_COMMIT}'"
+            }
+        }
         
         stage('Build Docker Image') {
             steps {
