@@ -44,6 +44,7 @@ public class UserServiceImpl implements UserService {
         user.setFirebaseUid(userRegisterRequest.getFirebaseUid());
         user.setEmail(userRegisterRequest.getEmail());
         user.setDisplayName(userRegisterRequest.getDisplayName() != null ? userRegisterRequest.getDisplayName() : userRegisterRequest.getEmail());
+        user.setUsername(userRegisterRequest.getUsername());
         user.setCreatedAt(LocalDateTime.now());
         user.setLastLogin(LocalDateTime.now());
 
@@ -69,6 +70,13 @@ public class UserServiceImpl implements UserService {
 
         if (userProfileRequest.getDisplayName() != null) {
             existingUser.setDisplayName(userProfileRequest.getDisplayName());
+        }
+
+        if (userProfileRequest.getUsername() != null) {
+            if(userRepository.existsByUsername(userProfileRequest.getUsername())) {
+                throw new IllegalArgumentException("Username already exists: " + userProfileRequest.getUsername());
+            }
+            existingUser.setUsername(userProfileRequest.getUsername());
         }
 
         if (userProfileRequest.getProfileImageUrl() != null) {
@@ -106,6 +114,7 @@ public class UserServiceImpl implements UserService {
                 .firebaseUid(user.getFirebaseUid())
                 .email(user.getEmail())
                 .displayName(user.getDisplayName())
+                .username(user.getUsername())
                 .profileImageUrl(user.getProfileImageUrl())
                 .bio(user.getBio())
                 .favoriteGenre(user.getFavoriteGenre())
