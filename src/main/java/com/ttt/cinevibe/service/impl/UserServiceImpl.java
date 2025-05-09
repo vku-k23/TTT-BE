@@ -34,47 +34,67 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse syncUser(UserRegisterRequest userRegisterRequest) {
-        log.debug("Creating new user with Firebase UID: {}", userRegisterRequest.getFirebaseUid());
+        log.debug("Creating/syncing user with Firebase UID: {}", userRegisterRequest.getFirebaseUid());
         log.info("User register request: {}", userRegisterRequest);
 
         boolean exists = userRepository.existsById(userRegisterRequest.getFirebaseUid());
+        
+        // Log the username from the request for debugging
+        String requestUsername = userRegisterRequest.getUsername();
+        log.info("Username in request: '{}'", requestUsername);
+        
         if (exists) {
             User existingUser = userRepository.findById(userRegisterRequest.getFirebaseUid()).get();
+            log.info("User exists with username: '{}'", existingUser.getUsername());
             
-            // If the user exists and has a username, but the request doesn't have one, preserve the existing username
-            if (existingUser.getUsername() != null && !existingUser.getUsername().isEmpty() 
-                    && (userRegisterRequest.getUsername() == null || userRegisterRequest.getUsername().isEmpty())) {
-                log.info("Using existing username: {} for user: {}", existingUser.getUsername(), existingUser.getFirebaseUid());
-                return currentUser(userRegisterRequest.getFirebaseUid());
+            // Update the username only if a new non-empty username is provided
+            if (requestUsername != null && !requestUsername.isEmpty()) {
+                log.info("Updating username to: '{}'", requestUsername);
+                existingUser.setUsername(requestUsername);
             }
             
-            // Update last login time
-            existingUser.setLastLogin(LocalDateTime.now());
-            userRepository.save(existingUser);
+            // Update display name if provided
+            if (userRegisterRequest.getDisplayName() != null && !userRegisterRequest.getDisplayName().isEmpty()) {
+                existingUser.setDisplayName(userRegisterRequest.getDisplayName());
+            }
             
-            return currentUser(userRegisterRequest.getFirebaseUid());
+            // Update email if provided
+            if (userRegisterRequest.getEmail() != null && !userRegisterRequest.getEmail().isEmpty()) {
+                existingUser.setEmail(userRegisterRequest.getEmail());
+            }
+            
+            // Always update last login time
+            existingUser.setLastLogin(LocalDateTime.now());
+            User savedUser = userRepository.save(existingUser);
+            
+            log.info("Updated existing user with username: '{}'", savedUser.getUsername());
+            return mapToUserResponse(savedUser);
         }
 
+        // Creating a new user
         User user = new User();
         user.setFirebaseUid(userRegisterRequest.getFirebaseUid());
         user.setEmail(userRegisterRequest.getEmail());
-        user.setDisplayName(userRegisterRequest.getDisplayName() != null ? userRegisterRequest.getDisplayName() : userRegisterRequest.getEmail());
+        user.setDisplayName(userRegisterRequest.getDisplayName() != null ? 
+                userRegisterRequest.getDisplayName() : userRegisterRequest.getEmail());
         
-        // If no username is provided, generate one based on email
-        if (userRegisterRequest.getUsername() == null || userRegisterRequest.getUsername().isEmpty()) {
+        // Prioritize the username provided in the registration request
+        if (requestUsername != null && !requestUsername.trim().isEmpty()) {
+            log.info("Using provided username for new user: '{}'", requestUsername);
+            user.setUsername(requestUsername);
+        } else {
+            // Only generate a username if none was provided
             String baseUsername = generateUsernameFromEmail(userRegisterRequest.getEmail());
             String uniqueUsername = ensureUniqueUsername(baseUsername);
-            log.info("Generated unique username: {} for user with email: {}", uniqueUsername, userRegisterRequest.getEmail());
+            log.info("Generated unique username: '{}' for user with email: '{}'", uniqueUsername, userRegisterRequest.getEmail());
             user.setUsername(uniqueUsername);
-        } else {
-            user.setUsername(userRegisterRequest.getUsername());
         }
         
         user.setCreatedAt(LocalDateTime.now());
         user.setLastLogin(LocalDateTime.now());
 
         User savedUser = userRepository.save(user);
-        log.info("Created new user with Firebase UID: {}", savedUser.getFirebaseUid());
+        log.info("Created new user with Firebase UID: {} and username: '{}'", savedUser.getFirebaseUid(), savedUser.getUsername());
 
         return mapToUserResponse(savedUser);
     }
@@ -127,7 +147,6 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse updateUserProfile(String firebaseUid, UserProfileRequest userProfileRequest) {
-
         log.info("Updating user with Firebase UID: {}", firebaseUid);
         log.info("User profile request: {}", userProfileRequest.getFirebaseUid());
 
@@ -143,7 +162,8 @@ public class UserServiceImpl implements UserService {
         }
 
         if (userProfileRequest.getUsername() != null) {
-            if(userRepository.existsByUsername(userProfileRequest.getUsername())) {
+            if(userRepository.existsByUsername(userProfileRequest.getUsername()) && 
+               !userProfileRequest.getUsername().equals(existingUser.getUsername())) {
                 throw new IllegalArgumentException("Username already exists: " + userProfileRequest.getUsername());
             }
             existingUser.setUsername(userProfileRequest.getUsername());

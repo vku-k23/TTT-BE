@@ -34,6 +34,8 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     private final UserService userService;
     private final UserRepository userRepository;
     private final FirebaseTokenHelper tokenHelper;
+    
+    private static final String HEADER_USERNAME = "X-Username";
 
     @Value("${firebase.enabled:true}")
     private boolean firebaseEnabled;
@@ -63,7 +65,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
 
         if (StringUtils.hasText(token)) {
             try {
-                handleFirebaseToken(token);
+                handleFirebaseToken(token, request);
             } catch (Exception e) {
                 log.error("Authentication failed: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
@@ -73,7 +75,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private void handleFirebaseToken(String token) {
+    private void handleFirebaseToken(String token, HttpServletRequest request) {
         FirebaseToken decodedToken = tokenHelper.verifyToken(token);
 
         if (decodedToken == null || !tokenHelper.isTokenValid(decodedToken)) {
@@ -87,25 +89,27 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             String email = decodedToken.getEmail();
             String name = decodedToken.getName();
             
-            // Try to get username from token claims
-            String username = null;
-            Map<String, Object> claims = decodedToken.getClaims();
-            
-            log.debug("Firebase token claims: {}", claims);
-            
-            // Check if the user has a username in custom claims
-            // (This would be added by our mobile app)
-            if (claims.containsKey("username")) {
-                username = (String) claims.get("username");
-                log.debug("Found username in token claims: {}", username);
-            }
-            
-            // If username is not in claims, try to get it from database if user already exists
-            if ((username == null || username.isEmpty()) && userRepository.existsById(uid)) {
-                Optional<User> existingUser = userRepository.findById(uid);
-                if (existingUser.isPresent() && StringUtils.hasText(existingUser.get().getUsername())) {
-                    username = existingUser.get().getUsername();
-                    log.debug("Found username in database: {}", username);
+            // First priority: Check for X-Username header
+            String username = request.getHeader(HEADER_USERNAME);
+            if (StringUtils.hasText(username)) {
+                log.debug("Found username in X-Username header: '{}'", username);
+            } else {
+                // Second priority: Check token claims
+                Map<String, Object> claims = decodedToken.getClaims();
+                log.debug("Firebase token claims: {}", claims);
+                
+                if (claims.containsKey("username")) {
+                    username = (String) claims.get("username");
+                    log.debug("Found username in token claims: '{}'", username);
+                }
+                
+                // Third priority: Check database
+                if ((username == null || username.isEmpty()) && userRepository.existsById(uid)) {
+                    Optional<User> existingUser = userRepository.findById(uid);
+                    if (existingUser.isPresent() && StringUtils.hasText(existingUser.get().getUsername())) {
+                        username = existingUser.get().getUsername();
+                        log.debug("Found username in database: '{}'", username);
+                    }
                 }
             }
             
