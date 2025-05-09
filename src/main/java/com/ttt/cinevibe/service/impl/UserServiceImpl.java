@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,9 +35,23 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse syncUser(UserRegisterRequest userRegisterRequest) {
         log.debug("Creating new user with Firebase UID: {}", userRegisterRequest.getFirebaseUid());
+        log.info("User register request: {}", userRegisterRequest);
 
         boolean exists = userRepository.existsById(userRegisterRequest.getFirebaseUid());
         if (exists) {
+            User existingUser = userRepository.findById(userRegisterRequest.getFirebaseUid()).get();
+            
+            // If the user exists and has a username, but the request doesn't have one, preserve the existing username
+            if (existingUser.getUsername() != null && !existingUser.getUsername().isEmpty() 
+                    && (userRegisterRequest.getUsername() == null || userRegisterRequest.getUsername().isEmpty())) {
+                log.info("Using existing username: {} for user: {}", existingUser.getUsername(), existingUser.getFirebaseUid());
+                return currentUser(userRegisterRequest.getFirebaseUid());
+            }
+            
+            // Update last login time
+            existingUser.setLastLogin(LocalDateTime.now());
+            userRepository.save(existingUser);
+            
             return currentUser(userRegisterRequest.getFirebaseUid());
         }
 
@@ -44,7 +59,17 @@ public class UserServiceImpl implements UserService {
         user.setFirebaseUid(userRegisterRequest.getFirebaseUid());
         user.setEmail(userRegisterRequest.getEmail());
         user.setDisplayName(userRegisterRequest.getDisplayName() != null ? userRegisterRequest.getDisplayName() : userRegisterRequest.getEmail());
-        user.setUsername(userRegisterRequest.getUsername());
+        
+        // If no username is provided, generate one based on email
+        if (userRegisterRequest.getUsername() == null || userRegisterRequest.getUsername().isEmpty()) {
+            String baseUsername = generateUsernameFromEmail(userRegisterRequest.getEmail());
+            String uniqueUsername = ensureUniqueUsername(baseUsername);
+            log.info("Generated unique username: {} for user with email: {}", uniqueUsername, userRegisterRequest.getEmail());
+            user.setUsername(uniqueUsername);
+        } else {
+            user.setUsername(userRegisterRequest.getUsername());
+        }
+        
         user.setCreatedAt(LocalDateTime.now());
         user.setLastLogin(LocalDateTime.now());
 
@@ -52,6 +77,51 @@ public class UserServiceImpl implements UserService {
         log.info("Created new user with Firebase UID: {}", savedUser.getFirebaseUid());
 
         return mapToUserResponse(savedUser);
+    }
+    
+    /**
+     * Generate a username from an email address by taking the part before the @ symbol
+     * and removing any non-alphanumeric characters
+     */
+    private String generateUsernameFromEmail(String email) {
+        if (email == null || email.isEmpty() || !email.contains("@")) {
+            return "user" + UUID.randomUUID().toString().substring(0, 8);
+        }
+        
+        String localPart = email.split("@")[0];
+        // Replace any non-alphanumeric characters with underscores and lowercase
+        String username = localPart.replaceAll("[^a-zA-Z0-9]", "_").toLowerCase();
+        
+        // Ensure it's not empty and not too long
+        if (username.isEmpty()) {
+            username = "user";
+        }
+        
+        if (username.length() > 15) {
+            username = username.substring(0, 15);
+        }
+        
+        return username;
+    }
+    
+    /**
+     * Ensure the username is unique by adding a number suffix if needed
+     */
+    private String ensureUniqueUsername(String baseUsername) {
+        String username = baseUsername;
+        int counter = 1;
+        
+        while (userRepository.existsByUsername(username)) {
+            if (username.length() + String.valueOf(counter).length() > 20) {
+                // Truncate the base username if adding the counter would make it too long
+                username = baseUsername.substring(0, 20 - String.valueOf(counter).length()) + counter;
+            } else {
+                username = baseUsername + counter;
+            }
+            counter++;
+        }
+        
+        return username;
     }
 
     @Override
@@ -113,8 +183,8 @@ public class UserServiceImpl implements UserService {
         return UserResponse.builder()
                 .firebaseUid(user.getFirebaseUid())
                 .email(user.getEmail())
-                .displayName(user.getDisplayName())
-                .username(user.getUsername())
+                .displayName(user.getDisplayName() != null ? user.getDisplayName() : user.getEmail())
+                .username(user.getUsername() != null ? user.getUsername() : "")
                 .profileImageUrl(user.getProfileImageUrl())
                 .bio(user.getBio())
                 .favoriteGenre(user.getFavoriteGenre())

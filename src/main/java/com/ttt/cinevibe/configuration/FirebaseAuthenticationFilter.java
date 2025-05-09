@@ -3,6 +3,8 @@ package com.ttt.cinevibe.configuration;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
 import com.ttt.cinevibe.dto.request.UserRegisterRequest;
+import com.ttt.cinevibe.model.User;
+import com.ttt.cinevibe.repository.UserRepository;
 import com.ttt.cinevibe.service.UserService;
 import com.ttt.cinevibe.util.FirebaseTokenHelper;
 import jakarta.servlet.FilterChain;
@@ -21,6 +23,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 
 @Component
 @Slf4j
@@ -28,6 +32,7 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
 
     private final FirebaseAuth firebaseAuth;
     private final UserService userService;
+    private final UserRepository userRepository;
     private final FirebaseTokenHelper tokenHelper;
 
     @Value("${firebase.enabled:true}")
@@ -36,9 +41,11 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     public FirebaseAuthenticationFilter(
             @Autowired(required = false) FirebaseAuth firebaseAuth,
             UserService userService,
+            @Autowired UserRepository userRepository,
             FirebaseTokenHelper tokenHelper) {
         this.firebaseAuth = firebaseAuth;
         this.userService = userService;
+        this.userRepository = userRepository;
         this.tokenHelper = tokenHelper;
     }
 
@@ -79,13 +86,36 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
             String uid = decodedToken.getUid();
             String email = decodedToken.getEmail();
             String name = decodedToken.getName();
-
+            
+            // Try to get username from token claims
+            String username = null;
+            Map<String, Object> claims = decodedToken.getClaims();
+            
+            log.debug("Firebase token claims: {}", claims);
+            
+            // Check if the user has a username in custom claims
+            // (This would be added by our mobile app)
+            if (claims.containsKey("username")) {
+                username = (String) claims.get("username");
+                log.debug("Found username in token claims: {}", username);
+            }
+            
+            // If username is not in claims, try to get it from database if user already exists
+            if ((username == null || username.isEmpty()) && userRepository.existsById(uid)) {
+                Optional<User> existingUser = userRepository.findById(uid);
+                if (existingUser.isPresent() && StringUtils.hasText(existingUser.get().getUsername())) {
+                    username = existingUser.get().getUsername();
+                    log.debug("Found username in database: {}", username);
+                }
+            }
+            
             log.debug("Firebase token validated for user: {}", uid);
 
             UserRegisterRequest userRegisterRequest = UserRegisterRequest.builder()
                     .firebaseUid(uid)
                     .email(email != null ? email : uid + "@firebase.com")
                     .displayName(name != null ? name : (email != null ? email : uid))
+                    .username(username != null ? username : "")
                     .build();
 
             userService.syncUser(userRegisterRequest);

@@ -40,6 +40,13 @@ public class FirebaseTokenHelper {
                 return null;
             }
             
+            // Log custom claims for debugging
+            if (claims.containsKey("username")) {
+                log.debug("Token contains username claim: {}", claims.get("username"));
+            } else {
+                log.debug("Token does not contain username claim");
+            }
+            
             log.debug("Token verified successfully for user: {}. Token expires in {} minutes", 
                 decodedToken.getUid(), 
                 TimeUnit.MILLISECONDS.toMinutes(timeToLive));
@@ -62,6 +69,13 @@ public class FirebaseTokenHelper {
             userInfo.put("picture", token.getPicture());
             userInfo.put("issuedAt", claims.get("iat"));
             userInfo.put("expiresAt", claims.get("exp"));
+            
+            // Add username if present in claims
+            if (claims.containsKey("username")) {
+                userInfo.put("username", claims.get("username"));
+                log.debug("Found username in claims: {}", claims.get("username"));
+            }
+            
             userInfo.put("claims", claims);
         }
         
