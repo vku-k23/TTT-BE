@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 public class UserResponse {
     private String firebaseUid;
     private String displayName;
+    private String username;
     private String email;
     private String profileImageUrl;
     private String bio;
