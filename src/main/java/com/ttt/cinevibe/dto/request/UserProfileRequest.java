@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class UserProfileRequest {
     private String firebaseUid;
     private String displayName;
+    private String username;
     private String profileImageUrl;
     private String bio;
     private String favoriteGenre;
