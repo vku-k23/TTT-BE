@@ -27,4 +27,6 @@ public interface UserConnectionService {
     boolean isFollowing(String userUid, String targetUserUid);
     
     ConnectionStatus getConnectionStatus(String userUid, String targetUserUid);
+
+    void cancelFollowRequest(String userUid, String targetUserUid);
 }

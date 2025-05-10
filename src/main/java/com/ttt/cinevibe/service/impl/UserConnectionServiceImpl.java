@@ -10,6 +10,7 @@ import com.ttt.cinevibe.model.User;
 import com.ttt.cinevibe.model.UserConnection;
 import com.ttt.cinevibe.model.UserConnection.ConnectionStatus;
 import com.ttt.cinevibe.repository.UserConnectionRepository;
+import com.ttt.cinevibe.repository.UserRepository;
 import com.ttt.cinevibe.service.UserConnectionService;
 import com.ttt.cinevibe.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ import java.util.Optional;
 public class UserConnectionServiceImpl implements UserConnectionService {
 
     private final UserConnectionRepository connectionRepository;
-
+    private final UserRepository userRepository;
     private final UserService userService;
 
     @Override
@@ -120,7 +121,19 @@ public class UserConnectionServiceImpl implements UserConnectionService {
         connection.setStatus(ConnectionStatus.ACCEPTED);
         connection = connectionRepository.save(connection);
         
-        log.info("Accepted follow request: {} -> {}", 
+        // Update follower and following counts
+        User follower = connection.getFollower();
+        User following = connection.getFollowing();
+        
+        // Increment follower's following count
+        follower.setFollowingCount(follower.getFollowingCount() + 1);
+        userRepository.save(follower);
+        
+        // Increment target user's followers count
+        following.setFollowersCount(following.getFollowersCount() + 1);
+        userRepository.save(following);
+        
+        log.info("Accepted follow request: {} -> {}, updated follower counts", 
                 connection.getFollower().getFirebaseUid(), userUid);
         
         return mapToUserConnectionResponse(connection);
@@ -160,7 +173,29 @@ public class UserConnectionServiceImpl implements UserConnectionService {
                 connectionRepository.findByFollowerAndFollowing(follower, following);
         
         if (existingConnection.isPresent()) {
-            connectionRepository.delete(existingConnection.get());
+            UserConnection connection = existingConnection.get();
+            
+            // Only decrease counts if the connection status was ACCEPTED
+            if (connection.getStatus() == ConnectionStatus.ACCEPTED) {
+                // Decrement follower's following count - add null check
+                Integer followingCount = follower.getFollowingCount();
+                if (followingCount != null && followingCount > 0) {
+                    follower.setFollowingCount(followingCount - 1);
+                    userRepository.save(follower);
+                }
+                
+                // Decrement target user's followers count - add null check
+                Integer followersCount = following.getFollowersCount();
+                if (followersCount != null && followersCount > 0) {
+                    following.setFollowersCount(followersCount - 1);
+                    userRepository.save(following);
+                }
+                
+                log.info("Updated follower/following counts after unfollow: {} -> {}", 
+                        userUid, targetUserUid);
+            }
+            
+            connectionRepository.delete(connection);
             log.info("Removed follow connection: {} -> {}", userUid, targetUserUid);
         }
     }
@@ -175,7 +210,29 @@ public class UserConnectionServiceImpl implements UserConnectionService {
                 connectionRepository.findByFollowerAndFollowing(follower, user);
         
         if (existingConnection.isPresent()) {
-            connectionRepository.delete(existingConnection.get());
+            UserConnection connection = existingConnection.get();
+            
+            // Only decrease counts if the connection status was ACCEPTED
+            if (connection.getStatus() == ConnectionStatus.ACCEPTED) {
+                // Decrement follower's following count - add null check
+                Integer followingCount = follower.getFollowingCount();
+                if (followingCount != null && followingCount > 0) {
+                    follower.setFollowingCount(followingCount - 1);
+                    userRepository.save(follower);
+                }
+                
+                // Decrement user's followers count - add null check
+                Integer followersCount = user.getFollowersCount();
+                if (followersCount != null && followersCount > 0) {
+                    user.setFollowersCount(followersCount - 1);
+                    userRepository.save(user);
+                }
+                
+                log.info("Updated follower/following counts after removing follower: {} -> {}", 
+                        followerUid, userUid);
+            }
+            
+            connectionRepository.delete(connection);
             log.info("Removed follower: {} -> {}", followerUid, userUid);
         }
     }
@@ -210,6 +267,36 @@ public class UserConnectionServiceImpl implements UserConnectionService {
         }
     }
     
+    @Override
+    @Transactional
+    public void cancelFollowRequest(String userUid, String targetUserUid) {
+        User follower = getUserOrThrow(userUid);
+        User following = getUserOrThrow(targetUserUid);
+        
+        Optional<UserConnection> existingConnection = 
+                connectionRepository.findByFollowerAndFollowing(follower, following);
+        
+        if (existingConnection.isPresent()) {
+            UserConnection connection = existingConnection.get();
+            
+            // Verify request is in PENDING state
+            if (connection.getStatus() != ConnectionStatus.PENDING) {
+                throw new IllegalStateException("This request is not in a pending state");
+            }
+            
+            // Verify the current user is the one who sent the request
+            if (!connection.getFollower().getFirebaseUid().equals(userUid)) {
+                throw new UnauthorizedException("You don't have permission to cancel this request");
+            }
+            
+            connectionRepository.delete(connection);
+            
+            log.info("Cancelled follow request: {} -> {}", userUid, targetUserUid);
+        } else {
+            throw new ResourceNotFoundException("Follow request not found");
+        }
+    }
+
     private User getUserOrThrow(String userUid) {
         UserResponse user = userService.currentUser(userUid);
         if (user == null) {

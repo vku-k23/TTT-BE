@@ -116,4 +116,14 @@ public class UserConnectionController {
             "status", status != null ? status.toString() : "NONE"
         ));
     }
+
+    @Operation(summary = "Cancel follow request", description = "Cancel a pending follow request that you sent to another user")
+    @DeleteMapping("/cancel-request/{targetUserUid}")
+    public ResponseEntity<Void> cancelFollowRequest(
+            @PathVariable String targetUserUid,
+            Authentication authentication) {
+        String userUid = authentication.getName();
+        userConnectionService.cancelFollowRequest(userUid, targetUserUid);
+        return ResponseEntity.noContent().build();
+    }
 }
