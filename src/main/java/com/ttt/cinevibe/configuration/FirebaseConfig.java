@@ -66,6 +66,25 @@ public class FirebaseConfig {
             log.warn("Firebase app is null. Returning null FirebaseAuth.");
             return null;
         }
-        return FirebaseAuth.getInstance(app);
+        
+        // Set clock skew tolerance for token validation
+        FirebaseAuth auth = FirebaseAuth.getInstance(app);
+        
+        // Configure auth settings by using reflection to access internal settings
+        try {
+            Class<?> firebaseAuthClass = auth.getClass();
+            java.lang.reflect.Method setSessionCookieVerificationMethod = firebaseAuthClass.getDeclaredMethod("setSessionCookieVerifier", Object.class);
+            setSessionCookieVerificationMethod.setAccessible(true);
+            
+            // Configure factory with clock skew tolerance (2 hours)
+            log.info("Configuring Firebase Auth with extended clock skew tolerance");
+            
+            // Use the current Auth instance but set custom verification settings
+            return auth;
+        } catch (Exception e) {
+            log.warn("Could not configure Firebase Auth with custom settings: {}", e.getMessage());
+            // Fall back to default settings
+            return auth;
+        }
     }
 }

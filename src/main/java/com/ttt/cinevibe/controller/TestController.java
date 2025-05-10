@@ -14,6 +14,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
+import com.google.firebase.auth.FirebaseToken;
+
 @Tag(name = "Test API", description = "Development testing endpoints - disable in production")
 @RestController
 @RequestMapping("/api/test")
@@ -154,5 +157,102 @@ public class TestController {
             response.put("error", e.getMessage());
             return ResponseEntity.badRequest().body(response);
         }
+    }
+
+    @GetMapping("/validateToken")
+    @Operation(summary = "Validate Firebase Token", description = "Validates a Firebase token and shows detailed information about clock synchronization")
+    public Map<String, Object> validateToken(
+            @RequestParam(required = false) String token,
+            HttpServletRequest request) {
+        
+        Map<String, Object> response = new HashMap<>();
+        long serverTime = System.currentTimeMillis() / 1000;
+        response.put("serverTime", serverTime);
+        response.put("serverTimeReadable", new java.util.Date());
+        
+        if (!firebaseEnabled || firebaseAuth == null) {
+            response.put("status", "error");
+            response.put("message", "Firebase authentication is disabled");
+            return response;
+        }
+        
+        // If token is not provided, try to extract from request
+        if (token == null || token.isEmpty()) {
+            String authHeader = request.getHeader("Authorization");
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            }
+        }
+        
+        if (token == null || token.isEmpty()) {
+            response.put("status", "error");
+            response.put("message", "No token provided");
+            return response;
+        }
+        
+        // Decode the token without verification first for diagnostic purposes
+        try {
+            String[] parts = token.split("\\.");
+            if (parts.length == 3) {
+                String payload = parts[1];
+                // Add padding if needed
+                while (payload.length() % 4 != 0) {
+                    payload += "=";
+                }
+                
+                String decoded = new String(java.util.Base64.getDecoder().decode(payload));
+                Map<String, Object> claims = new com.google.gson.Gson().fromJson(decoded, Map.class);
+                
+                response.put("tokenDecoded", claims);
+                
+                // Extract and provide timing information
+                Number issuedAt = (Number) claims.get("iat");
+                Number expiresAt = (Number) claims.get("exp");
+                
+                if (issuedAt != null && expiresAt != null) {
+                    long iat = issuedAt.longValue();
+                    long exp = expiresAt.longValue();
+                    
+                    response.put("tokenIssuedAt", iat);
+                    response.put("tokenExpiresAt", exp);
+                    response.put("tokenIssuedAtReadable", new java.util.Date(iat * 1000));
+                    response.put("tokenExpiresAtReadable", new java.util.Date(exp * 1000));
+                    
+                    // Calculate time differences
+                    long timeDiff = serverTime - iat;
+                    response.put("serverTimeMinusIssuedAt", timeDiff);
+                    
+                    if (iat > serverTime) {
+                        response.put("timeWarning", "⚠️ TOKEN ISSUED IN THE FUTURE - Server time is behind by " + (iat - serverTime) + " seconds");
+                    }
+                    
+                    if (serverTime > exp) {
+                        response.put("expirationWarning", "⚠️ TOKEN EXPIRED - Token expired " + (serverTime - exp) + " seconds ago");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            response.put("decodingError", "Failed to decode token: " + e.getMessage());
+        }
+        
+        // Now try to actually verify the token
+        try {
+            FirebaseToken decodedToken = firebaseAuth.verifyIdToken(token, true);
+            response.put("status", "success");
+            response.put("message", "Token is valid");
+            response.put("uid", decodedToken.getUid());
+            response.put("email", decodedToken.getEmail());
+            response.put("name", decodedToken.getName());
+        } catch (Exception e) {
+            response.put("status", "error");
+            response.put("message", "Token validation failed: " + e.getMessage());
+            
+            if (e.getMessage() != null && e.getMessage().contains("Firebase ID token is not yet valid")) {
+                response.put("clockSkewError", true);
+                response.put("recommendation", "Check device and server clock synchronization");
+            }
+        }
+        
+        return response;
     }
 }

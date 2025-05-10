@@ -34,6 +34,9 @@ public class SecurityConfig {
                     "/v3/api-docs/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**").permitAll()
+                .requestMatchers(HttpMethod.GET,
+                    "/api/connections/users/*/followers",
+                    "/api/connections/users/*/following").permitAll()
 //                .requestMatchers(HttpMethod.GET,
 //                    "/api/watchlists/public/**",
 //                    "/api/reviews/movie/**",
