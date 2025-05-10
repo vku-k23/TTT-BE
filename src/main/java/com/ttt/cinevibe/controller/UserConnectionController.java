@@ -48,7 +48,9 @@ public class UserConnectionController {
     @GetMapping("/users/{userId}/followers")
     public ResponseEntity<Page<UserConnectionResponse>> getUserFollowers(
             @PathVariable String userId,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20) Pageable pageable,
+            Authentication authentication) {
+        // No authentication check needed as this is a public endpoint
         return ResponseEntity.ok(userConnectionService.getUserFollowers(userId, pageable));
     }
     
@@ -56,7 +58,9 @@ public class UserConnectionController {
     @GetMapping("/users/{userId}/following")
     public ResponseEntity<Page<UserConnectionResponse>> getUserFollowing(
             @PathVariable String userId,
-            @PageableDefault(size = 20) Pageable pageable) {
+            @PageableDefault(size = 20) Pageable pageable,
+            Authentication authentication) {
+        // No authentication check needed as this is a public endpoint
         return ResponseEntity.ok(userConnectionService.getUserFollowing(userId, pageable));
     }
 
