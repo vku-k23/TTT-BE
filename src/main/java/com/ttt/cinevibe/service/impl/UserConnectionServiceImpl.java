@@ -124,11 +124,11 @@ public class UserConnectionServiceImpl implements UserConnectionService {
         // Update follower and following counts
         User follower = connection.getFollower();
         User following = connection.getFollowing();
-        
+                
         // Increment follower's following count
         follower.setFollowingCount(follower.getFollowingCount() + 1);
         userRepository.save(follower);
-        
+                
         // Increment target user's followers count
         following.setFollowersCount(following.getFollowersCount() + 1);
         userRepository.save(following);
@@ -177,16 +177,22 @@ public class UserConnectionServiceImpl implements UserConnectionService {
             
             // Only decrease counts if the connection status was ACCEPTED
             if (connection.getStatus() == ConnectionStatus.ACCEPTED) {
-                // Decrement follower's following count - add null check
+                // Initialize followingCount to 0 if it's null
+                follower.setFollowingCount(follower.getFollowingCount() == null ? 0 : follower.getFollowingCount());
+                
+                // Then decrement if greater than 0
                 Integer followingCount = follower.getFollowingCount();
-                if (followingCount != null && followingCount > 0) {
+                if (followingCount > 0) {
                     follower.setFollowingCount(followingCount - 1);
                     userRepository.save(follower);
                 }
                 
-                // Decrement target user's followers count - add null check
+                // Initialize followersCount to 0 if it's null
+                following.setFollowersCount(following.getFollowersCount() == null ? 0 : following.getFollowersCount());
+                
+                // Then decrement if greater than 0
                 Integer followersCount = following.getFollowersCount();
-                if (followersCount != null && followersCount > 0) {
+                if (followersCount > 0) {
                     following.setFollowersCount(followersCount - 1);
                     userRepository.save(following);
                 }
@@ -214,16 +220,22 @@ public class UserConnectionServiceImpl implements UserConnectionService {
             
             // Only decrease counts if the connection status was ACCEPTED
             if (connection.getStatus() == ConnectionStatus.ACCEPTED) {
-                // Decrement follower's following count - add null check
+                // Initialize followingCount to 0 if it's null
+                follower.setFollowingCount(follower.getFollowingCount() == null ? 0 : follower.getFollowingCount());
+                
+                // Then decrement if greater than 0
                 Integer followingCount = follower.getFollowingCount();
-                if (followingCount != null && followingCount > 0) {
+                if (followingCount > 0) {
                     follower.setFollowingCount(followingCount - 1);
                     userRepository.save(follower);
                 }
                 
-                // Decrement user's followers count - add null check
+                // Initialize followersCount to 0 if it's null
+                user.setFollowersCount(user.getFollowersCount() == null ? 0 : user.getFollowersCount());
+                
+                // Then decrement if greater than 0
                 Integer followersCount = user.getFollowersCount();
-                if (followersCount != null && followersCount > 0) {
+                if (followersCount > 0) {
                     user.setFollowersCount(followersCount - 1);
                     userRepository.save(user);
                 }
