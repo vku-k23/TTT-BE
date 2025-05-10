@@ -44,6 +44,22 @@ public class UserConnectionController {
         return ResponseEntity.ok(userConnectionService.getFollowers(userUid, pageable));
     }
 
+    @Operation(summary = "Get followers of a user", description = "Returns all users who follow a specific user")
+    @GetMapping("/users/{userId}/followers")
+    public ResponseEntity<Page<UserConnectionResponse>> getUserFollowers(
+            @PathVariable String userId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(userConnectionService.getUserFollowers(userId, pageable));
+    }
+    
+    @Operation(summary = "Get users a specific user follows", description = "Returns all users that a specific user follows")
+    @GetMapping("/users/{userId}/following")
+    public ResponseEntity<Page<UserConnectionResponse>> getUserFollowing(
+            @PathVariable String userId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(userConnectionService.getUserFollowing(userId, pageable));
+    }
+
     @Operation(summary = "Get pending follow requests", description = "Returns all pending follow requests for the authenticated user")
     @GetMapping("/pending")
     public ResponseEntity<Page<UserConnectionResponse>> getPendingRequests(

@@ -12,6 +12,10 @@ public interface UserConnectionService {
     
     Page<UserConnectionResponse> getFollowers(String userUid, Pageable pageable);
     
+    Page<UserConnectionResponse> getUserFollowing(String targetUserUid, Pageable pageable);
+    
+    Page<UserConnectionResponse> getUserFollowers(String targetUserUid, Pageable pageable);
+    
     Page<UserConnectionResponse> getPendingRequests(String userUid, Pageable pageable);
     
     UserConnectionResponse followUser(String userUid, UserConnectionRequest request);

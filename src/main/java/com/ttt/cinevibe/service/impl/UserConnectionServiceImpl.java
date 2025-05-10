@@ -37,10 +37,24 @@ public class UserConnectionServiceImpl implements UserConnectionService {
         return connectionRepository.findByFollowerAndStatus(user, ConnectionStatus.ACCEPTED, pageable)
                 .map(this::mapToUserConnectionResponse);
     }
+    
+    @Override
+    public Page<UserConnectionResponse> getUserFollowing(String targetUserUid, Pageable pageable) {
+        User user = getUserOrThrow(targetUserUid);
+        return connectionRepository.findByFollowerAndStatus(user, ConnectionStatus.ACCEPTED, pageable)
+                .map(this::mapToUserConnectionResponse);
+    }
 
     @Override
     public Page<UserConnectionResponse> getFollowers(String userUid, Pageable pageable) {
         User user = getUserOrThrow(userUid);
+        return connectionRepository.findByFollowingAndStatus(user, ConnectionStatus.ACCEPTED, pageable)
+                .map(this::mapToUserConnectionResponse);
+    }
+    
+    @Override
+    public Page<UserConnectionResponse> getUserFollowers(String targetUserUid, Pageable pageable) {
+        User user = getUserOrThrow(targetUserUid);
         return connectionRepository.findByFollowingAndStatus(user, ConnectionStatus.ACCEPTED, pageable)
                 .map(this::mapToUserConnectionResponse);
     }
