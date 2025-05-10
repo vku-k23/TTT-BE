@@ -65,9 +65,20 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
 
         if (StringUtils.hasText(token)) {
             try {
+                // Log the request path for debugging
+                String requestPath = request.getRequestURI();
+                log.debug("Processing request authentication for path: {}", requestPath);
+                
                 handleFirebaseToken(token, request);
             } catch (Exception e) {
-                log.error("Authentication failed: {}", e.getMessage());
+                // Enhanced error logging 
+                if (e.getMessage() != null && e.getMessage().contains("Firebase ID token is not yet valid")) {
+                    log.error("Authentication failed due to time synchronization issue: {}", e.getMessage());
+                    log.error("Server time: {}, ensure both client and server times are synchronized", 
+                             new java.util.Date());
+                } else {
+                    log.error("Authentication failed: {}", e.getMessage());
+                }
                 SecurityContextHolder.clearContext();
             }
         }
@@ -76,6 +87,19 @@ public class FirebaseAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void handleFirebaseToken(String token, HttpServletRequest request) {
+        // Decode the token without verification first to examine claims for debugging
+        try {
+            String[] tokenParts = token.split("\\.");
+            if (tokenParts.length >= 2) {
+                String encodedPayload = tokenParts[1];
+                byte[] decodedBytes = java.util.Base64.getDecoder().decode(encodedPayload);
+                String decodedPayload = new String(decodedBytes);
+                log.debug("Token payload (not verified): {}", decodedPayload);
+            }
+        } catch (Exception e) {
+            log.warn("Could not decode token for debugging: {}", e.getMessage());
+        }
+        
         FirebaseToken decodedToken = tokenHelper.verifyToken(token);
 
         if (decodedToken == null || !tokenHelper.isTokenValid(decodedToken)) {
