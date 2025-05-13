@@ -26,4 +26,6 @@ public interface MovieReviewService {
     MovieReviewResponse unlikeReview(String userUid, Long reviewId);
     
     boolean hasUserReviewedMovie(String userUid, Long tmdbMovieId);
+    
+    MovieReviewResponse getUserReviewForMovie(String userUid, Long tmdbMovieId);
 }
