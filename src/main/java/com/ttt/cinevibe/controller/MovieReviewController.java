@@ -105,4 +105,13 @@ public class MovieReviewController {
         boolean hasReviewed = reviewService.hasUserReviewedMovie(userUid, tmdbMovieId);
         return ResponseEntity.ok(Map.of("hasReviewed", hasReviewed));
     }
+
+    @Operation(summary = "Get user's review for a movie", description = "Returns the review created by the authenticated user for a specific movie")
+    @GetMapping("/user/movie/{tmdbMovieId}")
+    public ResponseEntity<MovieReviewResponse> getUserReviewForMovie(
+            @PathVariable Long tmdbMovieId,
+            Authentication authentication) {
+        String userUid = authentication.getName();
+        return ResponseEntity.ok(reviewService.getUserReviewForMovie(userUid, tmdbMovieId));
+    }
 }

@@ -156,6 +156,17 @@ public class MovieReviewServiceImpl implements MovieReviewService {
         }
     }
     
+    @Override
+    public MovieReviewResponse getUserReviewForMovie(String userUid, Long tmdbMovieId) {
+        User user = getUserOrThrow(userUid);
+        
+        MovieReview review = reviewRepository.findByUserAndTmdbMovieId(user, tmdbMovieId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found for movieId: " + tmdbMovieId));
+        
+        int commentCount = commentService.getCommentCountForReview(review.getId());
+        return mapToMovieReviewResponse(review, commentCount);
+    }
+    
     private User getUserOrThrow(String userUid) {
         UserResponse user = userService.currentUser(userUid);
         if (user == null) {
