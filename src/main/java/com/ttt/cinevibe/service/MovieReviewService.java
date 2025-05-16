@@ -28,4 +28,11 @@ public interface MovieReviewService {
     boolean hasUserReviewedMovie(String userUid, Long tmdbMovieId);
     
     MovieReviewResponse getUserReviewForMovie(String userUid, Long tmdbMovieId);
+    
+    // New methods for social feed
+    Page<MovieReviewResponse> getFollowingReviews(String userUid, Pageable pageable);
+    
+    Page<MovieReviewResponse> getPopularReviews(Pageable pageable);
+    
+    Page<MovieReviewResponse> getTrendingReviews(Pageable pageable);
 }

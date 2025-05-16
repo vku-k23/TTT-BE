@@ -9,16 +9,21 @@ import com.ttt.cinevibe.exception.UnauthorizedException;
 import com.ttt.cinevibe.model.MovieReview;
 import com.ttt.cinevibe.model.User;
 import com.ttt.cinevibe.repository.MovieReviewRepository;
+import com.ttt.cinevibe.repository.UserRepository;
 import com.ttt.cinevibe.service.CommentService;
 import com.ttt.cinevibe.service.MovieReviewService;
 import com.ttt.cinevibe.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +33,7 @@ public class MovieReviewServiceImpl implements MovieReviewService {
     private final MovieReviewRepository reviewRepository;
     private final UserService userService;
     private final CommentService commentService;
+    private final UserRepository userRepository;
 
     @Override
     public Page<MovieReviewResponse> getUserReviews(String userUid, Pageable pageable) {
@@ -70,8 +76,14 @@ public class MovieReviewServiceImpl implements MovieReviewService {
                 .build();
         
         review = reviewRepository.save(review);
-        log.info("Created new review with ID: {} for movie: {} by user: {}", 
-                review.getId(), request.getTmdbMovieId(), userUid);
+        
+        // Increment the user's review count
+        Integer currentReviewCount = user.getReviewCount() != null ? user.getReviewCount() : 0;
+        user.setReviewCount(currentReviewCount + 1);
+        userRepository.save(user);
+        
+        log.info("Created new review with ID: {} for movie: {} by user: {}. Updated review count to: {}", 
+                review.getId(), request.getTmdbMovieId(), userUid, user.getReviewCount());
         
         return mapToMovieReviewResponse(review, 0);
     }
@@ -108,8 +120,18 @@ public class MovieReviewServiceImpl implements MovieReviewService {
             throw new UnauthorizedException("You don't have permission to delete this review");
         }
         
+        // Get the user and decrement the review count
+        User user = review.getUser();
+        Integer currentReviewCount = user.getReviewCount() != null ? user.getReviewCount() : 0;
+        // Ensure the count doesn't go below 0
+        if (currentReviewCount > 0) {
+            user.setReviewCount(currentReviewCount - 1);
+            userRepository.save(user);
+        }
+        
         reviewRepository.delete(review);
-        log.info("Deleted review with ID: {} by user: {}", reviewId, userUid);
+        log.info("Deleted review with ID: {} by user: {}. Updated review count to: {}", 
+                reviewId, userUid, user.getReviewCount());
     }
 
     @Override
@@ -167,6 +189,71 @@ public class MovieReviewServiceImpl implements MovieReviewService {
         return mapToMovieReviewResponse(review, commentCount);
     }
     
+    @Override
+    public Page<MovieReviewResponse> getFollowingReviews(String userUid, Pageable pageable) {
+        User user = getUserOrThrow(userUid);
+        
+        log.info("Fetching reviews from users followed by: {}", userUid);
+        return reviewRepository.findReviewsFromFollowedUsers(user, pageable)
+                .map(review -> {
+                    int commentCount = commentService.getCommentCountForReview(review.getId());
+                    return mapToMovieReviewResponse(review, commentCount);
+                });
+    }
+    
+    @Override
+    public Page<MovieReviewResponse> getPopularReviews(Pageable pageable) {
+        log.info("Fetching popular reviews");
+        return reviewRepository.findPopularReviews(pageable)
+                .map(review -> {
+                    int commentCount = commentService.getCommentCountForReview(review.getId());
+                    return mapToMovieReviewResponse(review, commentCount);
+                });
+    }
+    
+    @Override
+    public Page<MovieReviewResponse> getTrendingReviews(Pageable pageable) {
+        // Get reviews from the last 7 days for trending
+        LocalDateTime oneWeekAgo = LocalDateTime.now().minusDays(7);
+        
+        log.info("Fetching trending reviews since: {}", oneWeekAgo);
+        
+        // First, get all the reviews from the database
+        Page<MovieReview> reviewsPage = reviewRepository.findTrendingReviews(oneWeekAgo, pageable);
+        
+        // Convert each MovieReview to a MovieReviewResponse with the comment count
+        List<MovieReviewResponse> reviewResponses = reviewsPage.getContent().stream()
+                .map(review -> {
+                    int commentCount = commentService.getCommentCountForReview(review.getId());
+                    return mapToMovieReviewResponseWithExtra(review, commentCount);
+                })
+                .collect(Collectors.toList());
+        
+        // Sort by our custom trending score (likes * 3 + comments)
+        reviewResponses.sort((a, b) -> {
+            int scoreA = a.getLikesCount() * 3 + a.getCommentCount();
+            int scoreB = b.getLikesCount() * 3 + b.getCommentCount();
+            if (scoreA != scoreB) {
+                return Integer.compare(scoreB, scoreA); // Descending order
+            } else {
+                // If scores are equal, sort by creation date (newest first)
+                return b.getCreatedAt().compareTo(a.getCreatedAt());
+            }
+        });
+        
+        // Take only the requested number of items if we have too many
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), reviewResponses.size());
+        
+        if (start > reviewResponses.size()) {
+            return new PageImpl<>(List.of(), pageable, reviewResponses.size());
+        }
+        
+        List<MovieReviewResponse> pagedList = reviewResponses.subList(start, end);
+        
+        return new PageImpl<>(pagedList, pageable, reviewResponses.size());
+    }
+    
     private User getUserOrThrow(String userUid) {
         UserResponse user = userService.currentUser(userUid);
         if (user == null) {
@@ -197,6 +284,11 @@ public class MovieReviewServiceImpl implements MovieReviewService {
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())
                 .build();
+    }
+    
+    // Helper method to create a response with extra metadata for trending sorting
+    private MovieReviewResponse mapToMovieReviewResponseWithExtra(MovieReview review, int commentCount) {
+        return mapToMovieReviewResponse(review, commentCount);
     }
 
     private User mapToUser(UserResponse userResponse) {

@@ -114,4 +114,27 @@ public class MovieReviewController {
         String userUid = authentication.getName();
         return ResponseEntity.ok(reviewService.getUserReviewForMovie(userUid, tmdbMovieId));
     }
+    
+    @Operation(summary = "Get reviews from followed users", description = "Returns reviews from users that the authenticated user follows")
+    @GetMapping("/following")
+    public ResponseEntity<Page<MovieReviewResponse>> getFollowingReviews(
+            Authentication authentication,
+            @PageableDefault(size = 10) Pageable pageable) {
+        String userUid = authentication.getName();
+        return ResponseEntity.ok(reviewService.getFollowingReviews(userUid, pageable));
+    }
+    
+    @Operation(summary = "Get popular reviews", description = "Returns reviews sorted by popularity (based on like count)")
+    @GetMapping("/popular")
+    public ResponseEntity<Page<MovieReviewResponse>> getPopularReviews(
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(reviewService.getPopularReviews(pageable));
+    }
+    
+    @Operation(summary = "Get trending reviews", description = "Returns trending reviews from the last 7 days (based on engagement)")
+    @GetMapping("/trending")
+    public ResponseEntity<Page<MovieReviewResponse>> getTrendingReviews(
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(reviewService.getTrendingReviews(pageable));
+    }
 }
