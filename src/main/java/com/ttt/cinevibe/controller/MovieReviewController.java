@@ -34,6 +34,14 @@ public class MovieReviewController {
         return ResponseEntity.ok(reviewService.getUserReviews(userUid, pageable));
     }
 
+    @Operation(summary = "Get reviews by user ID", description = "Returns all reviews created by a specific user")
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<MovieReviewResponse>> getUserReviewsByUserId(
+            @PathVariable String userId,
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(reviewService.getUserReviews(userId, pageable));
+    }
+
     @Operation(summary = "Get reviews for a movie", description = "Returns all reviews for a specific movie")
     @GetMapping("/movie/{tmdbMovieId}")
     public ResponseEntity<Page<MovieReviewResponse>> getMovieReviews(
