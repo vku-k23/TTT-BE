@@ -34,6 +34,14 @@ public class MovieReviewController {
         return ResponseEntity.ok(reviewService.getUserReviews(userUid, pageable));
     }
 
+    @Operation(summary = "Get reviews by user ID", description = "Returns all reviews created by a specific user")
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<Page<MovieReviewResponse>> getUserReviewsByUserId(
+            @PathVariable String userId,
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(reviewService.getUserReviews(userId, pageable));
+    }
+
     @Operation(summary = "Get reviews for a movie", description = "Returns all reviews for a specific movie")
     @GetMapping("/movie/{tmdbMovieId}")
     public ResponseEntity<Page<MovieReviewResponse>> getMovieReviews(
@@ -113,5 +121,28 @@ public class MovieReviewController {
             Authentication authentication) {
         String userUid = authentication.getName();
         return ResponseEntity.ok(reviewService.getUserReviewForMovie(userUid, tmdbMovieId));
+    }
+    
+    @Operation(summary = "Get reviews from followed users", description = "Returns reviews from users that the authenticated user follows")
+    @GetMapping("/following")
+    public ResponseEntity<Page<MovieReviewResponse>> getFollowingReviews(
+            Authentication authentication,
+            @PageableDefault(size = 10) Pageable pageable) {
+        String userUid = authentication.getName();
+        return ResponseEntity.ok(reviewService.getFollowingReviews(userUid, pageable));
+    }
+    
+    @Operation(summary = "Get popular reviews", description = "Returns reviews sorted by popularity (based on like count)")
+    @GetMapping("/popular")
+    public ResponseEntity<Page<MovieReviewResponse>> getPopularReviews(
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(reviewService.getPopularReviews(pageable));
+    }
+    
+    @Operation(summary = "Get trending reviews", description = "Returns trending reviews from the last 7 days (based on engagement)")
+    @GetMapping("/trending")
+    public ResponseEntity<Page<MovieReviewResponse>> getTrendingReviews(
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(reviewService.getTrendingReviews(pageable));
     }
 }
