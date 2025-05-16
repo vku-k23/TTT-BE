@@ -1,3 +1,4 @@
+// deployment pipeline for cinevibe application
 pipeline {
     agent any
     
